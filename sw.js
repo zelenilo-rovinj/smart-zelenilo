@@ -1,5 +1,38 @@
-const CACHE = 'smart-zelenilo-v2';
-const FILES = ['./index.html','./manifest.json','./icon-192.png','./icon-512.png','./favicon.ico'];
+importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js');
+
+// Firebase config u SW
+firebase.initializeApp({
+  apiKey: "AIzaSyC6wnZHBTRKMdFDq_KjkHqHoRTxOqBJ3tM",
+  authDomain: "zelenilo-rovinj.firebaseapp.com",
+  databaseURL: "https://zelenilo-rovinj-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "zelenilo-rovinj",
+  storageBucket: "zelenilo-rovinj.firebasestorage.app",
+  messagingSenderId: "427893403608",
+  appId: "1:427893403608:web:sz001"
+});
+
+const messaging = firebase.messaging();
+
+// Background push - kad je app zatvorena ili minimizirana
+messaging.onBackgroundMessage((payload) => {
+  const title = payload.notification?.title || 'Smart Zelenilo';
+  const body = payload.notification?.body || 'Nova obavijest';
+  
+  return self.registration.showNotification(title, {
+    body: body,
+    icon: './icon-192.png',
+    badge: './icon-192.png',
+    tag: 'sz-push',
+    renotify: true,
+    vibrate: [300, 100, 300, 100, 300],
+    data: { url: './' }
+  });
+});
+
+// Cache
+const CACHE = 'smart-zelenilo-v3';
+const FILES = ['./index.html','./manifest.json','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
@@ -15,47 +48,22 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
   if(url.hostname.includes('firebase')||url.hostname.includes('googleapis')||
-     url.hostname.includes('gstatic')||url.hostname.includes('fonts')||
-     e.request.method!=='GET') return;
+     url.hostname.includes('gstatic')||e.request.method!=='GET') return;
   e.respondWith(
     caches.match(e.request).then(cached => {
-      if(cached){
-        fetch(e.request).then(r=>{if(r&&r.status===200)caches.open(CACHE).then(c=>c.put(e.request,r));}).catch(()=>{});
-        return cached;
-      }
-      return fetch(e.request).then(r=>{
-        if(r&&r.status===200){const cl=r.clone();caches.open(CACHE).then(c=>c.put(e.request,cl));}
-        return r;
-      }).catch(()=>caches.match('./index.html'));
+      if(cached) return cached;
+      return fetch(e.request).catch(() => caches.match('./index.html'));
     })
   );
 });
 
-// Push kad je app zatvorena
-self.addEventListener('push', e => {
-  let data = {title:'Smart Zelenilo', body:'Nova obavijest'};
-  try { if(e.data) data = e.data.json(); } catch(err) { if(e.data) data.body = e.data.text(); }
-  e.waitUntil(
-    self.registration.showNotification(data.title, {
-      body: data.body,
-      icon: './icon-192.png',
-      badge: './icon-192.png',
-      tag: 'sz-push',
-      renotify: true,
-      vibrate: [300, 100, 300, 100, 300],
-      requireInteraction: false,
-      data: { url: './' }
-    })
-  );
-});
-
-// Klik na notifikaciju - otvori app
+// Klik na notifikaciju
 self.addEventListener('notificationclick', e => {
   e.notification.close();
   e.waitUntil(
     clients.matchAll({type:'window',includeUncontrolled:true}).then(list => {
       for(const c of list){
-        if(c.url.includes('index')||c.url.includes('smart-zelenilo')) return c.focus();
+        if(c.url.includes('smart-zelenilo')||c.url.includes('index')) return c.focus();
       }
       return clients.openWindow('./index.html');
     })
@@ -69,10 +77,9 @@ self.addEventListener('message', e => {
       body: e.data.body,
       icon: './icon-192.png',
       badge: './icon-192.png',
-      tag: 'sz-msg-'+Date.now(),
-      renotify: true,
       vibrate: [300, 100, 300, 100, 300],
-      data: { url: './' }
+      tag: 'sz-msg-'+Date.now(),
+      renotify: true
     });
   }
 });

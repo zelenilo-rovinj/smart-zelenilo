@@ -40,6 +40,32 @@ try {
   const db = getDatabase(app);
   window._db = db; window._ref = ref; window._set = set; window._onValue = onValue;
   window._fbReady = true;
+
+  // FCM - inicijaliziraj messaging
+  import('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging.js').then(({ getMessaging, getToken, onMessage }) => {
+    try {
+      const messaging = getMessaging(app);
+      window._messaging = messaging;
+      window._getToken = getToken;
+      window._onMessage = onMessage;
+      window._fcmReady = true;
+      window.dispatchEvent(new Event('fcmReady'));
+
+      // Primaj poruke kad je app otvorena (foreground)
+      onMessage(messaging, (payload) => {
+        const title = payload.notification?.title || 'Smart Zelenilo';
+        const body = payload.notification?.body || '';
+        // Prikaži kroz SW
+        if('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({
+            type: 'SHOW_NOTIFICATION', title, body
+          });
+        }
+        window._toast && window._toast(title + ': ' + body);
+      });
+    } catch(e) { console.log('FCM err:', e); }
+  }).catch(e => console.log('FCM import err:', e));
+
   window.dispatchEvent(new Event('fbReady'));
 } catch(e) { console.log('FB err:', e); }
 </script>
@@ -773,24 +799,37 @@ let fcmToken = null;
 
 async function subscribeFCM() {
   try {
-    if(!('serviceWorker' in navigator) || !('PushManager' in window)) return;
-    const reg = await navigator.serviceWorker.ready;
-    const sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: VAPID_KEY
-    });
-    fcmToken = JSON.stringify(sub);
-    localStorage.setItem('sz_push_sub', fcmToken);
-    // Spremi subscription na Firebase
-    if(window._fbReady && window._db){
-      const key = currentUser.replace(/[^a-zA-Z]/g,'_');
-      window._set(window._ref(window._db, 'zelenilo/push_subs/' + key), {
-        sub: fcmToken, user: currentUser, ts: Date.now()
-      });
+    if(!window._fcmReady) {
+      // Čekaj FCM da bude spreman
+      window.addEventListener('fcmReady', () => subscribeFCM(), { once: true });
+      return;
     }
-    console.log('✅ Push subscription aktivna');
+
+    const reg = await navigator.serviceWorker.ready;
+    
+    // Dohvati FCM token
+    const token = await window._getToken(window._messaging, {
+      vapidKey: VAPID_KEY,
+      serviceWorkerRegistration: reg
+    });
+
+    if(!token) { console.log('No FCM token'); return; }
+    
+    fcmToken = token;
+    localStorage.setItem('sz_fcm_token', token);
+    
+    // Spremi token na Firebase
+    if(window._fbReady && window._db) {
+      const key = currentUser.replace(/[^a-zA-Z0-9]/g,'_');
+      window._set(window._ref(window._db, 'zelenilo/push_subs/' + key), {
+        token: token,
+        user: currentUser,
+        ts: Date.now()
+      });
+      console.log('✅ FCM token spremljen:', token.substring(0,20)+'...');
+    }
   } catch(e) {
-    console.log('Push sub err:', e);
+    console.log('FCM subscribe err:', e);
   }
 }
 
@@ -1127,6 +1166,9 @@ document.addEventListener('keydown', e => {
 });
 
 // ===== INIT =====
+// Globalni toast za FCM
+window._toast = (msg) => toast(msg);
+
 // Auto-login ako je korisnik već prijavljen
 (function autoLogin(){
   const saved = localStorage.getItem('sz_user');
