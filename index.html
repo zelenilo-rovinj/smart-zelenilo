@@ -682,7 +682,11 @@ let fbDb = null, fbRef = null, fbSet = null, fbOnValue = null;
 window.addEventListener('fbReady', () => {
   fbDb = window._db; fbRef = window._ref;
   fbSet = window._set; fbOnValue = window._onValue;
-  if(currentUser) initFbListener();
+  if(currentUser) {
+    initFbListener();
+    initNotifListener();
+    subscribeFCM();
+  }
 });
 
 function initFbListener() {
@@ -742,24 +746,141 @@ function doLogin() {
   renderBoard();
 
   // Inicijaliziraj Firebase
-  if(window._fbReady) initFbListener();
+  if(window._fbReady) {
+    initFbListener();
+    initNotifListener();
+  }
+
+  // Spremi login u localStorage
+  localStorage.setItem('sz_user', u);
 
   // Traži dozvolu za notifikacije
   if('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission();
+    Notification.requestPermission().then(p => {
+      if(p === 'granted') subscribeFCM();
+    });
+  } else if('Notification' in window && Notification.permission === 'granted') {
+    subscribeFCM();
   }
 
   toast('Dobrodošao/la, ' + currentUser.split(' ')[0] + '! 👋');
 }
 
 // ===== NOTIFIKACIJE =====
-function pushNotif(title, body) {
-  if('Notification' in window && Notification.permission === 'granted') {
-    new Notification(title, {
-      body, icon: 'icon-192.png', badge: 'icon-192.png',
-      tag: 'sz-' + Date.now(), vibrate: [200, 100, 200]
+// FCM VAPID ključ i token
+const VAPID_KEY = 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjZSBjOSwFBDeaGFB7pzJ-7VxF24';
+let fcmToken = null;
+
+async function subscribeFCM() {
+  try {
+    if(!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: VAPID_KEY
     });
+    fcmToken = JSON.stringify(sub);
+    localStorage.setItem('sz_push_sub', fcmToken);
+    // Spremi subscription na Firebase
+    if(window._fbReady && window._db){
+      const key = currentUser.replace(/[^a-zA-Z]/g,'_');
+      window._set(window._ref(window._db, 'zelenilo/push_subs/' + key), {
+        sub: fcmToken, user: currentUser, ts: Date.now()
+      });
+    }
+    console.log('✅ Push subscription aktivna');
+  } catch(e) {
+    console.log('Push sub err:', e);
   }
+}
+
+function pushNotif(title, body) {
+  // Pošalji kroz SW (radi i u backgroundu)
+  sendNotifViaSW(title, body);
+
+  // 1. Browser notifikacija (kad je app otvorena ili u backgroundu)
+  if('Notification' in window && Notification.permission === 'granted') {
+    try {
+      // Pokušaj kroz Service Worker (za background push)
+      if('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.ready.then(reg => {
+          reg.showNotification(title, {
+            body,
+            icon: 'icon-192.png',
+            badge: 'icon-192.png',
+            tag: 'sz-notif',
+            renotify: true,
+            vibrate: [300, 100, 300, 100, 300],
+            sound: 'default',
+            actions: [{ action: 'open', title: 'Otvori' }],
+            data: { url: './' }
+          });
+        });
+      } else {
+        // Fallback - direktna notifikacija
+        const n = new Notification(title, {
+          body,
+          icon: 'icon-192.png',
+          badge: 'icon-192.png',
+          tag: 'sz-notif',
+          renotify: true,
+          vibrate: [300, 100, 300, 100, 300],
+        });
+        n.onclick = () => { window.focus(); n.close(); };
+      }
+    } catch(e) {
+      new Notification(title, { body, icon: 'icon-192.png' });
+    }
+  }
+
+  // 2. Spremi notifikaciju na Firebase da je vide drugi korisnici kad otvore app
+  saveNotifToFb(title, body);
+}
+
+function saveNotifToFb(title, body) {
+  if(!window._fbReady || !window._db) return;
+  const id = 'n_' + Date.now();
+  window._set(window._ref(window._db, 'zelenilo/notifications/' + id), {
+    title, body,
+    from: currentUser,
+    ts: Date.now(),
+    read: false
+  });
+}
+
+// Slušaj notifikacije od Firebase (za ostale korisnike)
+function initNotifListener() {
+  if(!window._fbReady || !window._db) return;
+  let firstLoad = true;
+  window._onValue(window._ref(window._db, 'zelenilo/notifications'), snap => {
+    if(firstLoad){ firstLoad = false; return; } // Preskoči inicijalno učitavanje
+    const data = snap.val();
+    if(!data) return;
+    const notifs = Object.values(data).sort((a,b) => b.ts - a.ts);
+    const lastTs = parseInt(localStorage.getItem('sz_last_notif_ts')||'0');
+    notifs.forEach(n => {
+      if(n.ts > lastTs && n.from !== currentUser){
+        // Nova notifikacija od drugog korisnika
+        if('Notification' in window && Notification.permission === 'granted'){
+          navigator.serviceWorker.ready.then(reg => {
+            reg.showNotification(n.title, {
+              body: n.body,
+              icon: 'icon-192.png',
+              badge: 'icon-192.png',
+              tag: 'sz-notif-' + n.ts,
+              renotify: true,
+              vibrate: [300, 100, 300, 100, 300],
+              data: { url: './' }
+            });
+          }).catch(() => {
+            new Notification(n.title, { body: n.body, icon: 'icon-192.png' });
+          });
+        }
+        toast(n.title + ': ' + n.body);
+      }
+    });
+    if(notifs.length) localStorage.setItem('sz_last_notif_ts', notifs[0].ts.toString());
+  });
 }
 
 // ===== RENDER =====
@@ -1006,14 +1127,54 @@ document.addEventListener('keydown', e => {
 });
 
 // ===== INIT =====
-// Focus na login input
-document.getElementById('loginUser').focus();
+// Auto-login ako je korisnik već prijavljen
+(function autoLogin(){
+  const saved = localStorage.getItem('sz_user');
+  if(saved && USERS[saved]){
+    document.getElementById('loginUser').value = saved;
+    document.getElementById('loginPass').value = PASSWORD;
+    doLogin();
+  } else {
+    document.getElementById('loginUser').focus();
+  }
+})();
 </script>
 
 <!-- PWA Service Worker -->
 <script>
 if('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').catch(()=>{});
+  navigator.serviceWorker.register('sw.js').then(reg => {
+    console.log('SW registriran');
+    // Kad ima novi SW - aktiviraj ga
+    reg.addEventListener('updatefound', () => {
+      reg.installing.addEventListener('statechange', e => {
+        if(e.target.state === 'installed' && navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({type:'SKIP_WAITING'});
+        }
+      });
+    });
+  }).catch(e => console.log('SW err:', e));
+
+  // Osluškuj poruke od SW
+  navigator.serviceWorker.addEventListener('message', e => {
+    if(e.data && e.data.type === 'NOTIFICATION') {
+      toast(e.data.body);
+    }
+  });
+}
+
+// Globalna funkcija za slanje notifikacije kroz SW (radi i kad je app u backgroundu)
+function sendNotifViaSW(title, body) {
+  if('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+    navigator.serviceWorker.controller.postMessage({
+      type: 'SHOW_NOTIFICATION', title, body
+    });
+  } else {
+    // Fallback - direktna notifikacija
+    if('Notification' in window && Notification.permission === 'granted') {
+      new Notification(title, {body, icon:'icon-192.png', badge:'icon-192.png', vibrate:[300,100,300]});
+    }
+  }
 }
 </script>
 
