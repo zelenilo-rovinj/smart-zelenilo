@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Smart Zelenilo">
+<meta name="theme-color" content="#1a3a1a">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="favicon.ico">
+<title>Smart Zelenilo</title>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
+import { getDatabase, ref, set, onValue, push } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js';
+import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging.js';
+
+const cfg = {
+  apiKey: "AIzaSyBSbUaG8Mz5bkZgl-KGAiQx3AtzvjCDPLE",
+  authDomain: "zelenilo-rovinj.firebaseapp.com",
+  databaseURL: "https://zelenilo-rovinj-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "zelenilo-rovinj",
+  storageBucket: "zelenilo-rovinj.firebasestorage.app",
+  messagingSenderId: "1050602141317",
+  appId: "1:1050602141317:web:ad083652b2254eedf89bec"
+};
+try {
+  const app = initializeApp(cfg);
+  const db = getDatabase(app);
+  window._db = db; window._ref = ref; window._set = set;
+  window._onValue = onValue; window._push = push;
+  // FCM
+  try {
+    const msg = getMessaging(app);
+    window._msg = msg; window._getToken = getToken; window._onMsg = onMessage;
+    onMessage(msg, p => {
+      const t = p.notification?.title || 'Smart Zelenilo';
+      const b = p.notification?.body || '';
+      showToast(t + ': ' + b);
+    });
+  } catch(e) {}
+  window._fbOK = true;
+  window.dispatchEvent(new Event('fbOK'));
+} catch(e) { console.log('FB:', e); }
+</script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap');
+
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --navy:#1a3a1a;--green:#2d6a2d;--gl:#4a9e4a;
+  --gold:#c8960c;--goldL:#f0b929;
+  --bg:#f0f4f0;--wh:#fff;--gw:#e8f0e8;
+  --tx:#1a2e1a;--ts:#4a6a4a;--tm:#7a9a7a;--bo:#c8dcc8;
+  --red:#c0392b;--ora:#e67e22;
+  --safe-t:env(safe-area-inset-top,0px);
+  --safe-b:env(safe-area-inset-bottom,0px);
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh}
+
+/* LOGIN */
+#LS{position:fixed;inset:0;background:linear-gradient(155deg,#0d1f0d,#1a3a1a,#0d2a0d);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;padding-top:calc(20px + var(--safe-t))}
+.lb{background:rgba(255,255,255,.97);border-radius:24px;padding:36px 28px;width:100%;max-width:360px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.ll{text-align:center;margin-bottom:20px}
+.li{width:72px;height:72px;background:var(--navy);border-radius:20px;display:inline-flex;align-items:center;justify-content:center;font-size:36px;margin-bottom:12px;border:2px solid rgba(200,150,12,.3)}
+.lt{font-family:'DM Serif Display',serif;font-size:26px;color:var(--navy);margin-bottom:3px}
+.ls{font-size:11px;color:var(--tm);letter-spacing:1px;text-transform:uppercase}
+.ll2{font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--ts);margin-bottom:6px;display:block}
+.li2{width:100%;padding:12px 14px;border:1.5px solid var(--bo);border-radius:10px;font-size:15px;font-family:'DM Sans',sans-serif;color:var(--tx);background:#f8fcf8;outline:none;margin-bottom:14px;transition:border-color .15s}
+.li2:focus{border-color:var(--gl);background:#fff}
+.lb2{width:100%;padding:14px;background:linear-gradient(135deg,var(--navy),var(--green));color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer}
+.lb2:active{opacity:.85}
+.le{background:#ffebee;color:var(--red);padding:10px 14px;border-radius:8px;font-size:13px;text-align:center;margin-bottom:14px;display:none}
+.lf{text-align:center;margin-top:16px;font-size:11px;color:var(--tm)}
+
+/* HEADER */
+.hdr{background:var(--navy);padding-top:var(--safe-t);position:sticky;top:0;z-index:100;box-shadow:0 2px 16px rgba(0,0,0,.25)}
+.hdr-in{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;gap:10px}
+.hdr-br{display:flex;align-items:center;gap:10px}
+.hdr-lg{width:36px;height:36px;background:var(--green);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;border:1px solid rgba(255,255,255,.15)}
+.hdr-t{font-family:'DM Serif Display',serif;font-size:18px;color:#fff;line-height:1.1}
+.hdr-s{font-size:9px;color:rgba(255,255,255,.45);letter-spacing:.8px;text-transform:uppercase}
+.hdr-u{display:flex;align-items:center;gap:8px}
+.uav{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gl));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--navy)}
+.hadd{background:var(--goldL);color:var(--navy);border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap}
+.hadd:active{opacity:.85;transform:scale(.97)}
+.sbar{background:rgba(0,0,0,.2);padding:7px 16px;display:flex;gap:16px;border-top:1px solid rgba(255,255,255,.06);overflow-x:auto;scrollbar-width:none}
+.sbar::-webkit-scrollbar{display:none}
+.si{display:flex;align-items:center;gap:5px;font-size:12px;color:rgba(255,255,255,.6);white-space:nowrap;flex-shrink:0}
+.sd{width:7px;height:7px;border-radius:50%}
+.sn{font-weight:700;color:#fff}
+
+/* FILTER */
+.fb{padding:10px 14px;background:var(--wh);border-bottom:1px solid var(--bo);display:flex;gap:8px;flex-wrap:wrap}
+.fi{flex:1;min-width:120px;padding:8px 12px;border:1px solid var(--bo);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);outline:none}
+.fis{padding:8px 10px;border:1px solid var(--bo);border-radius:8px;font-size:12px;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);outline:none;cursor:pointer}
+
+/* BOARD */
+.board{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:14px;align-items:start;padding-bottom:calc(14px + var(--safe-b))}
+@media(max-width:640px){.board{grid-template-columns:1fr}}
+
+/* COLUMN */
+.col{background:var(--gw);border-radius:14px;overflow:hidden;box-shadow:0 1px 8px rgba(26,58,26,.08)}
+.col-hd{padding:12px 14px;display:flex;align-items:center;gap:8px;color:#fff}
+.col-hd.todo{background:#3b6978}.col-hd.wip{background:#c8730a}.col-hd.done{background:#2d6a2d}
+.col-tit{font-size:13px;font-weight:700;letter-spacing:.3px;flex:1}
+.col-cnt{background:rgba(255,255,255,.22);color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px}
+.col-body{padding:8px;min-height:120px;display:flex;flex-direction:column;gap:7px;position:relative}
+.col-body.dov{background:rgba(74,158,74,.08);outline:2px dashed var(--gl);border-radius:8px}
+.col-add{width:100%;background:none;border:1.5px dashed var(--bo);border-radius:8px;padding:9px;font-size:12px;color:var(--tm);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;margin-top:2px}
+.col-add:active{border-color:var(--gl);color:var(--green)}
+
+/* CARD */
+.card{background:var(--wh);border-radius:10px;padding:12px;border-left:3.5px solid var(--gl);box-shadow:0 1px 5px rgba(26,58,26,.07);cursor:pointer;transition:box-shadow .15s,transform .15s;animation:cIn .2s ease;-webkit-user-select:none;user-select:none;touch-action:none;will-change:transform}
+@keyframes cIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.card:active{transform:scale(.98)}
+.card[data-p="Hitno"]{border-left-color:var(--red)}
+.card[data-p="Visoko"]{border-left-color:var(--ora)}
+.card[data-p="Normalno"]{border-left-color:var(--gl)}
+.card[data-p="Nisko"]{border-left-color:var(--tm)}
+.card.drag-ghost{opacity:.4;transform:rotate(1deg)}
+.card-tit{font-size:13px;font-weight:600;line-height:1.3;margin-bottom:4px}
+.card-desc{font-size:11px;color:var(--ts);line-height:1.4;margin-bottom:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card-meta{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
+.badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;display:inline-flex;align-items:center;gap:2px}
+.bp-Hitno{background:#ffebee;color:var(--red)}.bp-Visoko{background:#fff3e0;color:var(--ora)}
+.bp-Normalno{background:#e8f5e9;color:#2d6a2d}.bp-Nisko{background:#f5f5f5;color:var(--ts)}
+.br-l{background:#fce4ec;color:#ad1457}.br-ok{background:#e8f5e9;color:#2d6a2d}
+.bf{background:#f3e5f5;color:#6a1b9a}
+.card-hist{font-size:10px;color:var(--tm);margin-top:6px;padding-top:5px;border-top:1px solid var(--bg);display:flex;flex-wrap:wrap;gap:6px}
+.card-foot{display:flex;align-items:center;justify-content:space-between;margin-top:6px;padding-top:6px;border-top:1px solid var(--bg)}
+.card-dt{font-size:10px;color:var(--tm)}
+.card-btn{background:none;border:none;cursor:pointer;font-size:15px;padding:4px 7px;border-radius:6px;color:var(--tm)}
+.card-btn:active{background:var(--bg)}
+.thumbs{display:flex;gap:3px;flex-wrap:wrap;margin-top:5px}
+.thumb{width:44px;height:44px;border-radius:6px;object-fit:cover;border:1px solid var(--bo)}
+.empty{text-align:center;padding:20px 12px;color:var(--tm);font-size:12px}
+
+/* TOUCH GHOST */
+#tghost{position:fixed;z-index:9999;pointer-events:none;opacity:.88;transform:rotate(2deg) scale(1.04);box-shadow:0 8px 30px rgba(0,0,0,.28);border-radius:10px;background:var(--wh);padding:12px;border-left:3.5px solid var(--gl);max-width:260px;font-size:13px;font-weight:600;color:var(--tx);display:none}
+
+/* MODAL */
+.ov{position:fixed;inset:0;background:rgba(26,58,26,.55);backdrop-filter:blur(4px);z-index:200;display:none;align-items:flex-end;justify-content:center}
+.ov.open{display:flex}
+@media(min-width:640px){.ov{align-items:center}}
+.modal{background:var(--wh);border-radius:20px 20px 0 0;width:100%;max-width:520px;max-height:92vh;overflow-y:auto;padding-bottom:var(--safe-b);animation:mUp .22s ease}
+@media(min-width:640px){.modal{border-radius:20px;max-height:88vh}}
+@keyframes mUp{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
+.mhd{background:var(--navy);padding:16px 20px;border-radius:20px 20px 0 0;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:1}
+@media(min-width:640px){.mhd{border-radius:20px 20px 0 0}}
+.mt{font-family:'DM Serif Display',serif;font-size:18px;color:#fff}
+.mc{background:rgba(255,255,255,.12);border:none;color:#fff;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+.mb{padding:18px}
+.fg{margin-bottom:15px}
+.fl{display:block;font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--ts);margin-bottom:6px}
+.finp{width:100%;padding:11px 13px;border:1.5px solid var(--bo);border-radius:9px;font-size:14px;font-family:'DM Sans',sans-serif;color:var(--tx);background:var(--wh);outline:none;transition:border-color .15s}
+.finp:focus{border-color:var(--gl)}
+textarea.finp{resize:vertical;min-height:75px}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.uz{border:2px dashed var(--bo);border-radius:9px;padding:18px;text-align:center;cursor:pointer;background:var(--bg);transition:all .15s}
+.uz:active{border-color:var(--gl)}
+.upv{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+.utw{position:relative;width:58px;height:58px}
+.uth{width:58px;height:58px;border-radius:8px;object-fit:cover;border:1.5px solid var(--bo)}
+.udl{position:absolute;top:-6px;right:-6px;background:var(--red);color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.mft{padding:12px 18px 18px;border-top:1px solid var(--bg);display:flex;gap:8px;justify-content:flex-end}
+.btn{padding:10px 18px;border-radius:9px;font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;border:none;transition:all .15s}
+.btn:active{opacity:.85;transform:scale(.97)}
+.bp{background:var(--navy);color:#fff}.bsec{background:var(--bg);color:var(--ts);border:1.5px solid var(--bo)}.bdel{background:#ffebee;color:var(--red);border:1.5px solid #ffcdd2}
+
+/* LIGHTBOX */
+.lb3{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:300;display:none;align-items:center;justify-content:center}
+.lb3.open{display:flex}
+.lb3 img{max-width:92vw;max-height:88vh;border-radius:8px;object-fit:contain}
+.lbc{position:fixed;top:calc(16px + var(--safe-t));right:16px;background:rgba(255,255,255,.2);border:none;color:#fff;width:40px;height:40px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+
+/* CONFIRM */
+.cov{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;display:none;align-items:center;justify-content:center;padding:20px}
+.cov.open{display:flex}
+.cbox{background:var(--wh);border-radius:16px;padding:24px;max-width:300px;width:100%;box-shadow:0 16px 40px rgba(0,0,0,.2)}
+.cmsg{font-size:15px;margin-bottom:20px;text-align:center}
+.cbts{display:flex;gap:10px}
+.cbts .btn{flex:1}
+
+/* TOAST */
+.toast{position:fixed;bottom:calc(20px + var(--safe-b));left:50%;transform:translateX(-50%) translateY(20px);background:var(--navy);color:#fff;padding:11px 22px;border-radius:30px;font-size:13px;font-weight:500;z-index:400;opacity:0;transition:all .25s;white-space:nowrap;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,.25)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<!-- TOUCH GHOST -->
+<div id="tghost"></div>
+
+<!-- LOGIN -->
+<div id="LS">
+  <div class="lb">
+    <div class="ll">
+      <div class="li">🌿</div>
+      <div class="lt">Smart Zelenilo</div>
+      <div class="ls">Komunalni Servis d.o.o. Rovinj</div>
+    </div>
+    <div id="lerr" class="le">❌ Pogrešno korisničko ime ili lozinka</div>
+    <label class="ll2">Korisničko ime</label>
+    <input id="lun" type="text" class="li2" placeholder="morris" autocapitalize="none" autocomplete="username" onkeydown="if(event.key==='Enter')document.getElementById('lpw').focus()">
+    <label class="ll2">Lozinka</label>
+    <input id="lpw" type="password" class="li2" placeholder="••••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="lb2" onclick="doLogin()">Prijava →</button>
+    <div class="lf">Rovinj, Hrvatska • 2026.</div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-in">
+    <div class="hdr-br">
+      <div class="hdr-lg">🌿</div>
+      <div>
+        <div class="hdr-t">Smart Zelenilo</div>
+        <div class="hdr-s">OJ Zelenilo • Rovinj</div>
+      </div>
+    </div>
+    <div class="hdr-u">
+      <div class="uav" id="uav">MP</div>
+      <button class="hadd" onclick="openModal()">＋ Zadatak</button>
+    </div>
+  </div>
+  <div class="sbar">
+    <div class="si"><div class="sd" style="background:#3b6978"></div>Za odraditi: <span class="sn" id="st0">0</span></div>
+    <div class="si"><div class="sd" style="background:#c8730a"></div>U postupku: <span class="sn" id="st1">0</span></div>
+    <div class="si"><div class="sd" style="background:#2d6a2d"></div>Riješeno: <span class="sn" id="st2">0</span></div>
+  </div>
+</div>
+
+<!-- FILTER -->
+<div class="fb">
+  <input type="text" class="fi" id="fsr" placeholder="🔍 Pretraži zadatke..." oninput="render()">
+  <select class="fis" id="fpr" onchange="render()">
+    <option value="">Svi prioriteti</option>
+    <option value="Hitno">🔴 Hitno</option>
+    <option value="Visoko">🟠 Visoko</option>
+    <option value="Normalno">🟢 Normalno</option>
+    <option value="Nisko">⚪ Nisko</option>
+  </select>
+</div>
+
+<!-- BOARD -->
+<div class="board">
+  <div class="col">
+    <div class="col-hd todo"><span>📋</span><span class="col-tit">ZA ODRADITI</span><span class="col-cnt" id="cn0">0</span></div>
+    <div class="col-body" id="cb0" ondragover="dov(event,'todo')" ondrop="ddr(event,'todo')" ondragleave="dvl(event)"></div>
+    <div style="padding:0 8px 10px"><button class="col-add" onclick="openModal('todo')">＋ Dodaj zadatak</button></div>
+  </div>
+  <div class="col">
+    <div class="col-hd wip"><span>⚙️</span><span class="col-tit">U POSTUPKU</span><span class="col-cnt" id="cn1">0</span></div>
+    <div class="col-body" id="cb1" ondragover="dov(event,'wip')" ondrop="ddr(event,'wip')" ondragleave="dvl(event)"></div>
+    <div style="padding:0 8px 10px"><button class="col-add" onclick="openModal('wip')">＋ Dodaj zadatak</button></div>
+  </div>
+  <div class="col">
+    <div class="col-hd done"><span>✅</span><span class="col-tit">RIJEŠENO</span><span class="col-cnt" id="cn2">0</span></div>
+    <div class="col-body" id="cb2" ondragover="dov(event,'done')" ondrop="ddr(event,'done')" ondragleave="dvl(event)"></div>
+    <div style="padding:0 8px 10px"><button class="col-add" onclick="openModal('done')">＋ Dodaj zadatak</button></div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="ov" id="ov" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="mhd">
+      <span class="mt" id="mtit">Novi zadatak</span>
+      <button class="mc" onclick="closeModal()">✕</button>
+    </div>
+    <div class="mb">
+      <div class="fg">
+        <label class="fl">Naziv zadatka *</label>
+        <input type="text" id="mn" class="finp" placeholder="npr. Košnja travnjaka — Park Šumica">
+      </div>
+      <div class="fg">
+        <label class="fl">Opis / napomena</label>
+        <textarea id="mo" class="finp" placeholder="Detalji, lokacija, posebne napomene..."></textarea>
+      </div>
+      <div class="fr" style="margin-bottom:15px">
+        <div>
+          <label class="fl">Prioritet</label>
+          <select id="mp" class="finp">
+            <option value="Normalno">🟢 Normalno</option>
+            <option value="Visoko">🟠 Visoko</option>
+            <option value="Hitno">🔴 Hitno</option>
+            <option value="Nisko">⚪ Nisko</option>
+          </select>
+        </div>
+        <div>
+          <label class="fl">Rok</label>
+          <input type="date" id="mr" class="finp">
+        </div>
+      </div>
+      <div class="fg">
+        <label class="fl">Stupac</label>
+        <select id="ms" class="finp">
+          <option value="todo">📋 Za odraditi</option>
+          <option value="wip">⚙️ U postupku</option>
+          <option value="done">✅ Riješeno</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label class="fl">Fotografije</label>
+        <div class="uz" onclick="document.getElementById('mf').click()">
+          <input type="file" id="mf" multiple accept="image/*" style="display:none" onchange="addFiles(event)">
+          <div style="font-size:24px;margin-bottom:4px">📎</div>
+          <div style="font-size:12px;color:var(--tm)">Klikni za dodavanje slika</div>
+        </div>
+        <div class="upv" id="upv"></div>
+      </div>
+    </div>
+    <div class="mft">
+      <button class="btn bsec" onclick="closeModal()">Odustani</button>
+      <button class="btn bdel" id="bdel" style="display:none" onclick="deleteTask()">🗑️</button>
+      <button class="btn bp" onclick="saveTask()">💾 Spremi</button>
+    </div>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lb3" id="lb3" onclick="document.getElementById('lb3').classList.remove('open')">
+  <button class="lbc">✕</button>
+  <img id="lbi" src="" alt="">
+</div>
+
+<!-- CONFIRM -->
+<div class="cov" id="cov">
+  <div class="cbox">
+    <div class="cmsg" id="cmsg"></div>
+    <div class="cbts">
+      <button class="btn bsec" onclick="cRes(false)">Odustani</button>
+      <button class="btn bdel" onclick="cRes(true)">Obriši</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="tst"></div>
+
+<script>
+// ===== KONSTANTE =====
+const USERS = {
+  morris:    {name:'Morris Peruško',   av:'MP'},
+  dean:      {name:'Dean Vaci',         av:'DV'},
+  ervino:    {name:'Ervino Rudan',      av:'ER'},
+  kristijan: {name:'Kristijan Laginja', av:'KL'},
+};
+const PWD = 'ZELENILORV!';
+const VAPID = 'BMQpj8Kaj46hRN26R9Lc3ujFmvwfev1I2gdffPdZwefIgC8bpNKxsUT4jDvpSFuV0xQoIVlHtNXIeNdLXgbeMRU';
+const COLS = ['todo','wip','done'];
+const CNAME = {todo:'Za odraditi', wip:'U postupku', done:'Riješeno'};
+const CICON = {todo:'📋', wip:'⚙️', done:'✅'};
+const CBID  = ['cb0','cb1','cb2'];
+const CIDS  = ['cn0','cn1','cn2'];
+const STIDS = ['st0','st1','st2'];
+
+// ===== STATE =====
+let me = '';
+let tasks = [];
+let eid = null; // edit id
+let tmpF = [];  // tmp files
+let dragId = null;
+let cfnCb = null;
+let lastSeen = {};
+
+// Touch drag state
+let tId = null, tGhost = null, tStartX = 0, tStartY = 0, tMoved = false, tLongPress = null, tDragActive = false;
+
+// ===== FIREBASE =====
+window.addEventListener('fbOK', () => {
+  if(me) { initFb(); initFCM(); }
+});
+
+function initFb() {
+  if(!window._fbOK) return;
+  window._onValue(window._ref(window._db, 'zelenilo/kanban'), snap => {
+    const data = snap.val();
+    const prevIds = tasks.map(t => t.id);
+    tasks = data ? Object.values(data).sort((a,b)=>(b.ts||0)-(a.ts||0)) : [];
+    // Notifikacije za promjene od ostalih korisnika
+    tasks.forEach(t => {
+      if(!prevIds.includes(t.id) && prevIds.length > 0) {
+        if(t.kreirao !== me) {
+          doNotif('📋 Novi zadatak', '"'+t.naziv+'" dodao '+shortN(t.kreirao));
+          showToast('📋 Novi zadatak: "'+t.naziv+'"');
+        }
+      } else if(lastSeen[t.id] && lastSeen[t.id] !== t.status) {
+        if(t.tkoMjenjao && t.tkoMjenjao !== me) {
+          doNotif(CICON[t.status]+' Premješteno', '"'+t.naziv+'" → '+CNAME[t.status]+' ('+shortN(t.tkoMjenjao)+')');
+          showToast(CICON[t.status]+' "'+t.naziv+'" → '+CNAME[t.status]);
+        }
+      }
+      lastSeen[t.id] = t.status;
+    });
+    render();
+  });
+}
+
+function syncFb() {
+  const local = JSON.parse(localStorage.getItem('sz_t')||'[]');
+  tasks = tasks.length ? tasks : local;
+  localStorage.setItem('sz_t', JSON.stringify(tasks));
+  if(!window._fbOK) return;
+  const obj = {};
+  tasks.forEach(t => { obj[t.id] = t; });
+  window._set(window._ref(window._db, 'zelenilo/kanban'), obj);
+}
+
+function triggerNotif(title, body) {
+  if(!window._fbOK) return;
+  // Spremi u Firebase - Function će poslati push
+  const id = 'n'+Date.now();
+  window._set(window._ref(window._db, 'zelenilo/notifications/'+id), {
+    title, body, from: me, ts: Date.now()
+  });
+}
+
+// ===== FCM =====
+async function initFCM() {
+  if(!window._msg || !window._getToken) return;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const token = await window._getToken(window._msg, {
+      vapidKey: VAPID,
+      serviceWorkerRegistration: reg
+    });
+    if(token && window._fbOK) {
+      const k = me.replace(/[^a-zA-Z0-9]/g,'_');
+      window._set(window._ref(window._db,'zelenilo/push_subs/'+k), {
+        token, user: me, ts: Date.now()
+      });
+    }
+  } catch(e) { console.log('FCM:', e); }
+}
+
+// ===== LOGIN =====
+function doLogin() {
+  const u = (document.getElementById('lun').value||'').trim().toLowerCase();
+  const p = document.getElementById('lpw').value;
+  const err = document.getElementById('lerr');
+  if(!USERS[u] || p !== PWD) { err.style.display='block'; document.getElementById('lpw').value=''; return; }
+  err.style.display='none';
+  me = USERS[u].name;
+  document.getElementById('uav').textContent = USERS[u].av;
+  document.getElementById('LS').style.display = 'none';
+  localStorage.setItem('sz_u', u);
+  // Učitaj lokalne podatke
+  const loc = localStorage.getItem('sz_t');
+  if(loc) tasks = JSON.parse(loc);
+  render();
+  if(window._fbOK) { 
+    window._fbInit = true;
+    initFb(); 
+    initFCM(); 
+  }
+  if('Notification' in window && Notification.permission==='default') {
+    Notification.requestPermission().then(p => { if(p==='granted') initFCM(); });
+  }
+  showToast('Dobrodošao/la, '+me.split(' ')[0]+'! 👋');
+}
+
+// ===== RENDER =====
+function render() {
+  const s = (document.getElementById('fsr')?.value||'').toLowerCase();
+  const p = document.getElementById('fpr')?.value||'';
+  COLS.forEach((col, i) => {
+    const body = document.getElementById(CBID[i]);
+    if(!body) return;
+    let list = tasks.filter(t => t.status===col);
+    if(s) list = list.filter(t=>(t.naziv||'').toLowerCase().includes(s)||(t.opis||'').toLowerCase().includes(s));
+    if(p) list = list.filter(t=>t.prioritet===p);
+    const total = tasks.filter(t=>t.status===col).length;
+    document.getElementById(CIDS[i]).textContent = total;
+    document.getElementById(STIDS[i]).textContent = total;
+    body.innerHTML = list.length ? list.map(card).join('') : '<div class="empty">Nema zadataka</div>';
+    // Dodaj touch events na svaku karticu
+    body.querySelectorAll('.card').forEach(el => {
+      el.addEventListener('touchstart', e => ts(e, el.dataset.id), {passive:false});
+      el.addEventListener('touchmove', tm, {passive:false});
+      el.addEventListener('touchend', te, {passive:false});
+      el.addEventListener('touchcancel', tc, {passive:true});
+    });
+  });
+}
+
+function card(t) {
+  const today = new Date().toISOString().split('T')[0];
+  const rok = t.rok ? `<span class="badge ${t.rok<today?'br-l':'br-ok'}">📅 ${fd(t.rok)}</span>` : '';
+  const pi = {Hitno:'🔴',Visoko:'🟠',Normalno:'🟢',Nisko:'⚪'}[t.prioritet]||'🟢';
+  const fotos = (t.files||[]).filter(f=>f.type?.startsWith('image/'));
+  const fb = (t.files||[]).length ? `<span class="badge bf">📎 ${t.files.length}</span>` : '';
+  const thumbs = fotos.length ? `<div class="thumbs">${
+    fotos.slice(0,3).map(f=>`<img class="thumb" src="${f.data}" loading="lazy">`).join('')
+  }</div>` : '';
+
+  // Povijest — tko je kreirao, tko je stavio u postupku/riješeno
+  let hist = '';
+  if(t.kreirao) hist += `<span>✍️ Kreirao: <b>${shortN(t.kreirao)}</b></span>`;
+  if(t.tkoMjenjao && t.tkoMjenjao !== t.kreirao) {
+    const akcija = t.status==='wip' ? 'U postupku' : t.status==='done' ? 'Riješio' : 'Promijenio';
+    hist += `<span>🔄 ${akcija}: <b>${shortN(t.tkoMjenjao)}</b></span>`;
+  }
+  if(t.updated) hist += `<span style="color:var(--bo)">${fd(t.updated)}</span>`;
+
+  return `<div class="card" data-id="${t.id}" data-p="${t.prioritet}" draggable="true" onclick="openEdit('${t.id}')"
+    ondragstart="ds(event,'${t.id}')" ondragend="de(event)"
+    onclick="cardClick(event,'${t.id}')">
+    <div style="display:flex;align-items:flex-start;gap:6px">
+      <div class="card-tit" style="flex:1">${esc(t.naziv||'')}</div>
+      <button class="card-btn" onclick="event.stopPropagation();mvFwd('${t.id}')" title="Premjesti naprijed">→</button>
+    </div>
+    ${t.opis?`<div class="card-desc">${esc(t.opis)}</div>`:''}
+    ${thumbs}
+    <div class="card-meta">
+      <span class="badge bp-${t.prioritet}">${pi} ${t.prioritet}</span>
+      ${rok}${fb}
+    </div>
+    ${hist?`<div class="card-hist">${hist}</div>`:''}
+    <div class="card-foot">
+      <span class="card-dt">${fd(t.dat||'')}</span>
+    </div>
+  </div>`;
+}
+
+// ===== MODAL =====
+function openModal(status) {
+  eid = null; tmpF = [];
+  document.getElementById('mn').value = '';
+  document.getElementById('mo').value = '';
+  document.getElementById('mp').value = 'Normalno';
+  document.getElementById('mr').value = '';
+  document.getElementById('ms').value = status||'todo';
+  document.getElementById('upv').innerHTML = '';
+  document.getElementById('bdel').style.display = 'none';
+  document.getElementById('mtit').textContent = 'Novi zadatak';
+  document.getElementById('ov').classList.add('open');
+  setTimeout(()=>document.getElementById('mn').focus(), 150);
+}
+
+function openEdit(id) {
+  const t = tasks.find(x=>x.id===id);
+  if(!t) return;
+  eid = id; tmpF = JSON.parse(JSON.stringify(t.files||[]));
+  document.getElementById('mn').value = t.naziv||'';
+  document.getElementById('mo').value = t.opis||'';
+  document.getElementById('mp').value = t.prioritet||'Normalno';
+  document.getElementById('mr').value = t.rok||'';
+  document.getElementById('ms').value = t.status||'todo';
+  document.getElementById('bdel').style.display = '';
+  document.getElementById('mtit').textContent = 'Uredi zadatak';
+  renderUpv();
+  document.getElementById('ov').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('ov').classList.remove('open');
+  tmpF = [];
+}
+
+function saveTask() {
+  const naziv = document.getElementById('mn').value.trim();
+  if(!naziv) { showToast('Unesite naziv!'); document.getElementById('mn').focus(); return; }
+  const ns = document.getElementById('ms').value;
+
+  if(eid) {
+    const i = tasks.findIndex(x=>x.id===eid);
+    if(i>=0) {
+      const old = tasks[i].status;
+      tasks[i] = {...tasks[i], naziv,
+        opis: document.getElementById('mo').value.trim(),
+        prioritet: document.getElementById('mp').value,
+        rok: document.getElementById('mr').value,
+        status: ns, files: [...tmpF],
+        tkoMjenjao: me,
+        updated: new Date().toISOString().split('T')[0]
+      };
+      lastSeen[eid] = ns;
+      if(old !== ns) {
+        const msg = '"'+naziv+'" → '+CNAME[ns]+' ('+shortN(me)+')';
+        triggerNotif(CICON[ns]+' Premješteno', msg);
+        showToast(CICON[ns]+' Premješteno: "'+naziv+'"');
+      } else {
+        showToast('Zadatak ažuriran ✅');
+      }
+    }
+  } else {
+    const id = 't'+Date.now();
+    tasks.unshift({id, naziv,
+      opis: document.getElementById('mo').value.trim(),
+      prioritet: document.getElementById('mp').value,
+      rok: document.getElementById('mr').value,
+      status: ns, files: [...tmpF],
+      kreirao: me,
+      tkoMjenjao: me,
+      dat: new Date().toISOString().split('T')[0],
+      ts: Date.now()
+    });
+    lastSeen[id] = ns;
+    triggerNotif('📋 Novi zadatak', '"'+naziv+'" dodao '+shortN(me));
+    showToast('📋 Zadatak dodan: "'+naziv+'"');
+  }
+  syncFb(); render(); closeModal();
+}
+
+function deleteTask() {
+  if(!eid) return;
+  showConfirm('Obrisati ovaj zadatak?', ()=>{
+    tasks = tasks.filter(x=>x.id!==eid);
+    syncFb(); render(); closeModal(); showToast('Zadatak obrisan');
+  });
+}
+
+// ===== FILES =====
+function addFiles(e) {
+  Array.from(e.target.files).forEach(f=>{
+    const r = new FileReader();
+    r.onload = ev => { tmpF.push({name:f.name,type:f.type,data:ev.target.result}); renderUpv(); };
+    r.readAsDataURL(f);
+  });
+  e.target.value='';
+}
+
+function renderUpv() {
+  document.getElementById('upv').innerHTML = tmpF.map((f,i)=>`
+    <div class="utw">
+      ${f.type?.startsWith('image/')
+        ? `<img class="uth" src="${f.data}" onclick="openLB('${f.data}')">`
+        : `<div class="uth" style="display:flex;align-items:center;justify-content:center;font-size:22px;background:var(--bg)">📄</div>`}
+      <button class="udl" onclick="tmpF.splice(${i},1);renderUpv()">✕</button>
+    </div>`).join('');
+}
+
+// ===== LIGHTBOX =====
+function openLB(src) {
+  document.getElementById('lbi').src = src;
+  document.getElementById('lb3').classList.add('open');
+}
+
+// ===== CONFIRM =====
+function showConfirm(msg, cb) {
+  cfnCb = cb;
+  document.getElementById('cmsg').textContent = msg;
+  document.getElementById('cov').classList.add('open');
+}
+function cRes(yes) {
+  document.getElementById('cov').classList.remove('open');
+  if(yes && cfnCb) cfnCb();
+  cfnCb = null;
+}
+
+// ===== TOAST =====
+function showToast(msg) {
+  const el = document.getElementById('tst');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 2800);
+}
+
+// ===== NOTIFIKACIJE =====
+function doNotif(title, body) {
+  if('Notification' in window && Notification.permission==='granted') {
+    if('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({type:'SHOW_NOTIFICATION', title, body});
+    } else {
+      new Notification(title, {body, icon:'icon-192.png', badge:'icon-192.png', vibrate:[300,100,300,100,300]});
+    }
+  }
+}
+
+// ===== CARD CLICK vs DRAG =====
+function cardClick(e, id) {
+  // Ako je bio touch drag - ne otvaraj edit
+  if(window._wasDrag) { window._wasDrag = false; return; }
+  openEdit(id);
+}
+
+// ===== DRAG & DROP (desktop) =====
+function ds(e, id) {
+  dragId = id; e.dataTransfer.effectAllowed='move';
+  setTimeout(()=>{ const el=document.querySelector(`.card[data-id="${id}"]`); if(el) el.classList.add('drag-ghost'); },0);
+}
+function de(e) {
+  document.querySelectorAll('.card.drag-ghost').forEach(el=>el.classList.remove('drag-ghost'));
+  document.querySelectorAll('.col-body.dov').forEach(el=>el.classList.remove('dov'));
+}
+function dov(e, col) {
+  e.preventDefault();
+  document.querySelectorAll('.col-body').forEach(el=>el.classList.remove('dov'));
+  document.getElementById(CBID[COLS.indexOf(col)]).classList.add('dov');
+}
+function dvl(e) { if(!e.currentTarget.contains(e.relatedTarget)) e.currentTarget.classList.remove('dov'); }
+function ddr(e, col) {
+  e.preventDefault();
+  document.querySelectorAll('.col-body').forEach(el=>el.classList.remove('dov'));
+  if(!dragId) return;
+  const t = tasks.find(x=>x.id===dragId);
+  if(t && t.status!==col) {
+    t.status = col; t.tkoMjenjao = me; t.updated = new Date().toISOString().split('T')[0];
+    lastSeen[t.id] = col;
+    syncFb(); render();
+    triggerNotif(CICON[col]+' Premješteno', '"'+t.naziv+'" → '+CNAME[col]+' ('+shortN(me)+')');
+    showToast(CICON[col]+' "'+t.naziv+'" → '+CNAME[col]);
+  }
+  dragId = null;
+}
+
+// ===== TOUCH DRAG (iPhone/Android) =====
+function ts(e, id) {
+  tId = id; tMoved = false; tDragActive = false;
+  const touch = e.touches[0];
+  tStartX = touch.clientX; tStartY = touch.clientY;
+  // Long press za aktiviranje draga (500ms)
+  tLongPress = setTimeout(() => {
+    if(!tMoved) {
+      const t = tasks.find(x=>x.id===id);
+      if(!t) return;
+      tDragActive = true;
+      const ghost = document.getElementById('tghost');
+      ghost.textContent = t.naziv;
+      ghost.style.display = 'block';
+      ghost.style.left = tStartX - 120 + 'px';
+      ghost.style.top = tStartY - 30 + 'px';
+      tGhost = ghost;
+      const card = document.querySelector(`.card[data-id="${id}"]`);
+      if(card) { card.classList.add('dragging'); card.style.opacity = '0.4'; }
+      if(navigator.vibrate) navigator.vibrate(80);
+      e.preventDefault();
+    }
+  }, 500);
+}
+
+function tm(e) {
+  if(!tId) return;
+  const touch = e.touches[0];
+  const dx = touch.clientX - tStartX;
+  const dy = touch.clientY - tStartY;
+  
+  // Ako se pomaknulo > 8px prije long press - otkaži drag, dozvoli scroll
+  if(!tDragActive && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+    clearTimeout(tLongPress);
+    tId = null;
+    return;
+  }
+  
+  if(tDragActive && tGhost) {
+    e.preventDefault(); // Blokiraj scroll samo kad je drag aktivan
+    tGhost.style.left = touch.clientX - 120 + 'px';
+    tGhost.style.top = touch.clientY - 30 + 'px';
+    // Highlight kolone
+    document.querySelectorAll('.col-body').forEach(el=>el.classList.remove('dov'));
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    const col = el?.closest('.col-body');
+    if(col) col.classList.add('dov');
+  }
+}
+
+function te(e) {
+  clearTimeout(tLongPress);
+  if(tDragActive && tGhost) {
+    tGhost.style.display = 'none';
+    tGhost = null;
+    document.querySelectorAll('.col-body').forEach(el=>el.classList.remove('dov'));
+    const card = document.querySelector(`.card[data-id="${tId}"]`);
+    if(card) card.style.opacity = '';
+    // Pronađi ciljnu kolonu
+    const touch = e.changedTouches[0];
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    const colBody = el?.closest('.col-body');
+    if(colBody) {
+      const idx = CBID.indexOf(colBody.id);
+      if(idx >= 0) {
+        const col = COLS[idx];
+        const t = tasks.find(x=>x.id===tId);
+        if(t && t.status!==col) {
+          t.status = col; t.tkoMjenjao = me; t.updated = new Date().toISOString().split('T')[0];
+          lastSeen[t.id] = col;
+          syncFb(); render();
+          triggerNotif(CICON[col]+' Premješteno', '"'+t.naziv+'" → '+CNAME[col]+' ('+shortN(me)+')');
+          showToast(CICON[col]+' "'+t.naziv+'" → '+CNAME[col]);
+        }
+      }
+    }
+  }
+  if(tGhost) window._wasDrag = true;
+  tId = null; tMoved = false; tDragActive = false;
+}
+
+function tc() {
+  clearTimeout(tLongPress);
+  if(tGhost) { tGhost.style.display='none'; tGhost=null; }
+  document.querySelectorAll('.col-body').forEach(el=>el.classList.remove('dov'));
+  const card = document.querySelector(`.card[data-id="${tId}"]`);
+  if(card) { card.classList.remove('dragging'); card.style.opacity=''; }
+  tId=null; tMoved=false; tDragActive=false;
+}
+
+// ===== MOVE FORWARD =====
+function mvFwd(id) {
+  const t = tasks.find(x=>x.id===id); if(!t) return;
+  const i = COLS.indexOf(t.status);
+  if(i < COLS.length-1) {
+    t.status = COLS[i+1]; t.tkoMjenjao = me; t.updated = new Date().toISOString().split('T')[0];
+    lastSeen[t.id] = t.status;
+    syncFb(); render();
+    triggerNotif(CICON[t.status]+' Premješteno', '"'+t.naziv+'" → '+CNAME[t.status]+' ('+shortN(me)+')');
+    showToast(CICON[t.status]+' "'+t.naziv+'" → '+CNAME[t.status]);
+  }
+}
+
+// ===== UTILS =====
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function fd(d){if(!d)return '';const p=d.split('-');return p[2]+'.'+p[1]+'.'+p[0]+'.';}
+function shortN(n){return(n||'').split(' ').slice(0,2).map((w,i)=>i===0?w:w[0]+'.').join(' ');}
+
+// ===== ESC KEY =====
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape'){closeModal(); document.getElementById('lb3').classList.remove('open');}
+});
+
+// ===== INIT =====
+(function init(){
+  const u = localStorage.getItem('sz_u');
+  if(u && USERS[u]) {
+    document.getElementById('lun').value = u;
+    document.getElementById('lpw').value = PWD;
+    doLogin();
+  } else {
+    document.getElementById('lun').focus();
+  }
+})();
+
+// Ako Firebase kasni, inicijaliziraj kad bude spreman
+window.addEventListener('fbOK', () => {
+  if(me && !window._fbInit) {
+    window._fbInit = true;
+    initFb();
+    initFCM();
+  }
+});
+</script>
+
+<script>
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').then(reg=>{
+    navigator.serviceWorker.addEventListener('message', e=>{
+      if(e.data?.type==='TOAST') showToast(e.data.msg);
+    });
+  }).catch(e=>console.log('SW:',e));
+}
+</script>
+</body>
+</html>
