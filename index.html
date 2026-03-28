@@ -114,7 +114,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 .col-add:active{border-color:var(--gl);color:var(--green)}
 
 /* CARD */
-.card{background:var(--wh);border-radius:10px;padding:12px;border-left:3.5px solid var(--gl);box-shadow:0 1px 5px rgba(26,58,26,.07);cursor:pointer;transition:box-shadow .15s,transform .15s;animation:cIn .2s ease;-webkit-user-select:none;user-select:none;touch-action:pan-y}
+.card{background:var(--wh);border-radius:10px;padding:12px;border-left:3.5px solid var(--gl);box-shadow:0 1px 5px rgba(26,58,26,.07);cursor:pointer;transition:box-shadow .15s,transform .15s;animation:cIn .2s ease;-webkit-user-select:none;user-select:none;touch-action:none;will-change:transform}
 @keyframes cIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
 .card:active{transform:scale(.98)}
 .card[data-p="Hitno"]{border-left-color:var(--red)}
@@ -370,7 +370,7 @@ let cfnCb = null;
 let lastSeen = {};
 
 // Touch drag state
-let tId = null, tGhost = null, tStartX = 0, tStartY = 0, tMoved = false, tLongPress = null;
+let tId = null, tGhost = null, tStartX = 0, tStartY = 0, tMoved = false, tLongPress = null, tDragActive = false;
 
 // ===== FIREBASE =====
 window.addEventListener('fbOK', () => {
@@ -708,7 +708,7 @@ function ts(e, id) {
     if(!tMoved) {
       const t = tasks.find(x=>x.id===id);
       if(!t) return;
-      tMoved = true; // Označi da je drag počeo
+      tMoved = true; tDragActive = true;
       const ghost = document.getElementById('tghost');
       ghost.textContent = t.naziv;
       ghost.style.display = 'block';
@@ -728,9 +728,10 @@ function tm(e) {
   const dx = touch.clientX - tStartX;
   const dy = touch.clientY - tStartY;
   
-  if(!tGhost && (Math.abs(dx) > 10 || Math.abs(dy) > 10)) {
-    // Malo pomicanje - otkaži long press
+  if(!tDragActive && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
     clearTimeout(tLongPress);
+    tId = null;
+    return;
   }
   
   if(tGhost) {
