@@ -114,7 +114,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-h
 .col-add:active{border-color:var(--gl);color:var(--green)}
 
 /* CARD */
-.card{background:var(--wh);border-radius:10px;padding:12px;border-left:3.5px solid var(--gl);box-shadow:0 1px 5px rgba(26,58,26,.07);cursor:pointer;transition:box-shadow .15s,transform .15s;animation:cIn .2s ease;-webkit-user-select:none;user-select:none;touch-action:none;will-change:transform}
+.card{background:var(--wh);border-radius:10px;padding:12px;border-left:3.5px solid var(--gl);box-shadow:0 1px 5px rgba(26,58,26,.07);cursor:pointer;transition:box-shadow .15s,transform .15s;animation:cIn .2s ease;-webkit-user-select:none;user-select:none;touch-action:none}
 @keyframes cIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
 .card:active{transform:scale(.98)}
 .card[data-p="Hitno"]{border-left-color:var(--red)}
@@ -306,11 +306,11 @@ textarea.finp{resize:vertical;min-height:75px}
         </select>
       </div>
       <div class="fg">
-        <label class="fl">Fotografije</label>
+        <label class="fl">Fotografije i dokumenti</label>
         <div class="uz" onclick="document.getElementById('mf').click()">
-          <input type="file" id="mf" multiple accept="image/*" style="display:none" onchange="addFiles(event)">
+          <input type="file" id="mf" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" style="display:none" onchange="addFiles(event)">
           <div style="font-size:24px;margin-bottom:4px">📎</div>
-          <div style="font-size:12px;color:var(--tm)">Klikni za dodavanje slika</div>
+          <div style="font-size:12px;color:var(--tm)">Slike, PDF, Word, Excel</div>
         </div>
         <div class="upv" id="upv"></div>
       </div>
@@ -494,19 +494,30 @@ function card(t) {
   const rok = t.rok ? `<span class="badge ${t.rok<today?'br-l':'br-ok'}">📅 ${fd(t.rok)}</span>` : '';
   const pi = {Hitno:'🔴',Visoko:'🟠',Normalno:'🟢',Nisko:'⚪'}[t.prioritet]||'🟢';
   const fotos = (t.files||[]).filter(f=>f.type?.startsWith('image/'));
-  const fb = (t.files||[]).length ? `<span class="badge bf">📎 ${t.files.length}</span>` : '';
-  const thumbs = fotos.length ? `<div class="thumbs">${
-    fotos.slice(0,3).map(f=>`<img class="thumb" src="${f.data}" loading="lazy">`).join('')
-  }</div>` : '';
+  const imgCount = (t.files||[]).filter(f=>f.type?.startsWith('image/')).length;
+  const docCount = (t.files||[]).filter(f=>!f.type?.startsWith('image/')).length;
+  const fb = (t.files||[]).length ? 
+    (imgCount > 0 ? `<span class="badge bf">🖼️ ${imgCount}</span>` : '') +
+    (docCount > 0 ? `<span class="badge" style="background:#e3f2fd;color:#1565c0">📄 ${docCount}</span>` : '') : '';
+  const allFiles = t.files||[];
+  const thumbs = allFiles.length ? `<div class="thumbs">${
+    allFiles.slice(0,4).map(f=>{
+      if(f.type?.startsWith('image/')) return `<img class="thumb" src="${f.data}" loading="lazy" style="cursor:pointer" onclick="event.stopPropagation();openLB('${f.data}')">`;
+      if(f.type?.includes('pdf')) return `<div class="thumb" style="display:flex;flex-direction:column;align-items:center;justify-content:center;background:#ffebee;font-size:16px;gap:1px"><span>📄</span><span style="font-size:8px;color:#c0392b;font-weight:700">PDF</span></div>`;
+      if(f.name?.endsWith('.docx')||f.name?.endsWith('.doc')) return `<div class="thumb" style="display:flex;flex-direction:column;align-items:center;justify-content:center;background:#e3f2fd;font-size:16px;gap:1px"><span>📝</span><span style="font-size:8px;color:#1565c0;font-weight:700">DOC</span></div>`;
+      if(f.name?.endsWith('.xlsx')||f.name?.endsWith('.xls')) return `<div class="thumb" style="display:flex;flex-direction:column;align-items:center;justify-content:center;background:#e8f5e9;font-size:16px;gap:1px"><span>📊</span><span style="font-size:8px;color:#2e7d32;font-weight:700">XLS</span></div>`;
+      return `<div class="thumb" style="display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg);font-size:16px;gap:1px"><span>📎</span><span style="font-size:8px;color:var(--ts);font-weight:700">${(f.name||'').split('.').pop().toUpperCase().substring(0,4)}</span></div>`;
+    }).join('')
+  }${allFiles.length>4?`<div class="thumb" style="display:flex;align-items:center;justify-content:center;background:var(--bg);font-size:11px;color:var(--ts)">+${allFiles.length-4}</div>`:''}</div>` : '';
 
-  // Povijest — tko je kreirao, tko je stavio u postupku/riješeno
+  // Povijest — tko je kreirao, tko je premjestio
   let hist = '';
-  if(t.kreirao) hist += `<span>✍️ Kreirao: <b>${shortN(t.kreirao)}</b></span>`;
+  if(t.kreirao) hist += `<span>✍️ Dodao: <b>${t.kreirao.split(' ')[0]}</b></span>`;
   if(t.tkoMjenjao && t.tkoMjenjao !== t.kreirao) {
-    const akcija = t.status==='wip' ? 'U postupku' : t.status==='done' ? 'Riješio' : 'Promijenio';
-    hist += `<span>🔄 ${akcija}: <b>${shortN(t.tkoMjenjao)}</b></span>`;
+    const akcija = t.status==='wip' ? '▶️ U postupku' : t.status==='done' ? '✅ Riješio' : '🔄 Premjestio';
+    hist += `<span>${akcija}: <b>${t.tkoMjenjao.split(' ')[0]}</b></span>`;
   }
-  if(t.updated) hist += `<span style="color:var(--bo)">${fd(t.updated)}</span>`;
+  if(t.updated) hist += `<span style="color:var(--tm);font-size:9px">${fd(t.updated)}</span>`;
 
   return `<div class="card" data-id="${t.id}" data-p="${t.prioritet}" draggable="true" onclick="openEdit('${t.id}')"
     ondragstart="ds(event,'${t.id}')" ondragend="de(event)"
@@ -627,13 +638,24 @@ function addFiles(e) {
 }
 
 function renderUpv() {
-  document.getElementById('upv').innerHTML = tmpF.map((f,i)=>`
-    <div class="utw">
-      ${f.type?.startsWith('image/')
-        ? `<img class="uth" src="${f.data}" onclick="openLB('${f.data}')">`
-        : `<div class="uth" style="display:flex;align-items:center;justify-content:center;font-size:22px;background:var(--bg)">📄</div>`}
+  document.getElementById('upv').innerHTML = tmpF.map((f,i)=>{
+    let preview;
+    if(f.type?.startsWith('image/')) {
+      preview = `<img class="uth" src="${f.data}" onclick="openLB('${f.data}')" style="cursor:pointer">`;
+    } else if(f.type?.includes('pdf')) {
+      preview = `<div class="uth" style="display:flex;flex-direction:column;align-items:center;justify-content:center;background:#ffebee;gap:2px"><span style="font-size:18px">📄</span><span style="font-size:8px;color:#c0392b;font-weight:700">PDF</span></div>`;
+    } else if(f.type?.includes('word') || f.name?.endsWith('.doc') || f.name?.endsWith('.docx')) {
+      preview = `<div class="uth" style="display:flex;flex-direction:column;align-items:center;justify-content:center;background:#e3f2fd;gap:2px"><span style="font-size:18px">📝</span><span style="font-size:8px;color:#1565c0;font-weight:700">DOC</span></div>`;
+    } else if(f.type?.includes('excel') || f.type?.includes('spreadsheet') || f.name?.endsWith('.xls') || f.name?.endsWith('.xlsx')) {
+      preview = `<div class="uth" style="display:flex;flex-direction:column;align-items:center;justify-content:center;background:#e8f5e9;gap:2px"><span style="font-size:18px">📊</span><span style="font-size:8px;color:#2e7d32;font-weight:700">XLS</span></div>`;
+    } else {
+      preview = `<div class="uth" style="display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg);gap:2px"><span style="font-size:18px">📎</span><span style="font-size:8px;color:var(--ts);font-weight:700">${(f.name||'').split('.').pop().toUpperCase().substring(0,4)}</span></div>`;
+    }
+    return `<div class="utw" title="${f.name||''}">
+      ${preview}
       <button class="udl" onclick="tmpF.splice(${i},1);renderUpv()">✕</button>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 // ===== LIGHTBOX =====
