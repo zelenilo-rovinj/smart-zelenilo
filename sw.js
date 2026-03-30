@@ -31,7 +31,7 @@ messaging.onBackgroundMessage((payload) => {
 });
 
 // Cache
-const CACHE = 'smart-zelenilo-v3';
+const CACHE = 'smart-zelenilo-v1774884328991';
 const FILES = ['./index.html','./manifest.json','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install', e => {
