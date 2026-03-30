@@ -10,12 +10,734 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="favicon.ico">
-<title>Smart Zelenilo v3</title>
+<title>Smart Zelenilo</title>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
+import { getDatabase, ref, set, onValue, push } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js';
+import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging.js';
+const cfg = {
+  apiKey:"AIzaSyC6wnZHBTRKMdFDq_KjkHqHoRTxOqBJ3tM",
+  authDomain:"zelenilo-rovinj.firebaseapp.com",
+  databaseURL:"https://zelenilo-rovinj-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId:"zelenilo-rovinj",
+  storageBucket:"zelenilo-rovinj.firebasestorage.app",
+  messagingSenderId:"427893403608",
+  appId:"1:427893403608:web:sz001"
+};
+try {
+  const app = initializeApp(cfg);
+  const db = getDatabase(app);
+  window._db=db; window._ref=ref; window._set=set; window._onValue=onValue; window._push=push;
+  try {
+    const msg = getMessaging(app);
+    window._msg=msg; window._getToken=getToken; window._onMsg=onMessage;
+    onMessage(msg, p => showToast((p.notification?.title||'')+(p.notification?.body?': '+p.notification.body:'')));
+  } catch(e){}
+  window._fbOK=true;
+  window.dispatchEvent(new Event('fbOK'));
+} catch(e){ console.log('FB:',e); }
+</script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap');
+
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{height:100%;overflow:hidden}
+body{
+  font-family:'DM Sans',sans-serif;
+  background:#f0f4f0;
+  color:#1a2e1a;
+  height:100%;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+}
+:root{
+  --navy:#1a3a1a;--green:#2d6a2d;--gl:#4a9e4a;
+  --gold:#c8960c;--goldL:#f0b929;
+  --bg:#f0f4f0;--wh:#fff;--gw:#e8f0e8;
+  --tx:#1a2e1a;--ts:#4a6a4a;--tm:#7a9a7a;--bo:#c8dcc8;
+  --red:#c0392b;--ora:#e67e22;
+  --safe-t:env(safe-area-inset-top,0px);
+  --safe-b:env(safe-area-inset-bottom,0px);
+}
+
+/* LOGIN */
+#LS{position:fixed;inset:0;background:linear-gradient(155deg,#0d1f0d,#1a3a1a,#0d2a0d);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;padding-top:calc(20px + var(--safe-t));overflow-y:auto}
+.lb{background:rgba(255,255,255,.97);border-radius:24px;padding:32px 24px;width:100%;max-width:360px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.ll{text-align:center;margin-bottom:18px}
+.li{width:68px;height:68px;background:var(--navy);border-radius:18px;display:inline-flex;align-items:center;justify-content:center;font-size:34px;margin-bottom:10px;border:2px solid rgba(200,150,12,.3)}
+.lt{font-family:'DM Serif Display',serif;font-size:24px;color:var(--navy);margin-bottom:3px}
+.ls{font-size:11px;color:var(--tm);letter-spacing:1px;text-transform:uppercase}
+.ll2{display:block;font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--ts);margin-bottom:6px}
+.li2{width:100%;padding:12px 14px;border:1.5px solid var(--bo);border-radius:10px;font-size:16px;font-family:'DM Sans',sans-serif;color:var(--tx);background:#f8fcf8;outline:none;margin-bottom:14px;-webkit-appearance:none}
+.li2:focus{border-color:var(--gl);background:#fff}
+.lb2{width:100%;padding:14px;background:linear-gradient(135deg,var(--navy),var(--green));color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;-webkit-appearance:none}
+.le{background:#ffebee;color:var(--red);padding:10px 14px;border-radius:8px;font-size:13px;text-align:center;margin-bottom:14px;display:none}
+.lf{text-align:center;margin-top:14px;font-size:11px;color:var(--tm)}
+
+/* HEADER - fixed */
+.hdr{background:var(--navy);padding-top:var(--safe-t);flex-shrink:0;box-shadow:0 2px 16px rgba(0,0,0,.25);position:relative;z-index:50}
+.hdr-in{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;gap:8px}
+.hdr-br{display:flex;align-items:center;gap:9px}
+.hdr-lg{width:34px;height:34px;background:var(--green);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;border:1px solid rgba(255,255,255,.15);flex-shrink:0}
+.hdr-t{font-family:'DM Serif Display',serif;font-size:17px;color:#fff;line-height:1.1}
+.hdr-s{font-size:9px;color:rgba(255,255,255,.45);letter-spacing:.8px;text-transform:uppercase}
+.hdr-u{display:flex;align-items:center;gap:7px;flex-shrink:0}
+.uav{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gl));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--navy)}
+.hadd{background:var(--goldL);color:var(--navy);border:none;border-radius:8px;padding:7px 12px;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap;-webkit-appearance:none}
+.hadd:active{opacity:.8}
+.sbar{background:rgba(0,0,0,.2);padding:6px 14px;display:flex;gap:14px;border-top:1px solid rgba(255,255,255,.06);overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.sbar::-webkit-scrollbar{display:none}
+.si{display:flex;align-items:center;gap:4px;font-size:11px;color:rgba(255,255,255,.6);white-space:nowrap;flex-shrink:0}
+.sd{width:7px;height:7px;border-radius:50%}
+.sn{font-weight:700;color:#fff}
+
+/* FILTER */
+.fb{padding:8px 12px;background:var(--wh);border-bottom:1px solid var(--bo);display:flex;gap:7px;flex-shrink:0}
+.fi{flex:1;min-width:0;padding:8px 10px;border:1px solid var(--bo);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);outline:none;-webkit-appearance:none}
+.fis{padding:8px 10px;border:1px solid var(--bo);border-radius:8px;font-size:12px;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);outline:none;cursor:pointer;flex-shrink:0;-webkit-appearance:none}
+
+/* SCROLL CONTAINER */
+.scroll-wrap{
+  flex:1;
+  overflow-y:auto;
+  overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
+  scroll-behavior:smooth;
+}
+
+/* BOARD */
+.board{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:12px;align-items:start;padding-bottom:calc(12px + var(--safe-b))}
+@media(max-width:640px){.board{grid-template-columns:1fr}}
+
+/* COLUMN */
+.col{background:var(--gw);border-radius:12px;overflow:hidden;box-shadow:0 1px 6px rgba(26,58,26,.07)}
+.col-hd{padding:10px 12px;display:flex;align-items:center;gap:7px;color:#fff}
+.col-hd.todo{background:#3b6978}.col-hd.wip{background:#c8730a}.col-hd.done{background:#2d6a2d}
+.col-tit{font-size:12px;font-weight:700;letter-spacing:.3px;flex:1}
+.col-cnt{background:rgba(255,255,255,.22);color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px}
+.col-body{padding:7px;min-height:80px;display:flex;flex-direction:column;gap:6px}
+.col-body.dov{background:rgba(74,158,74,.08);outline:2px dashed var(--gl);border-radius:8px}
+.col-add{width:100%;background:none;border:1.5px dashed var(--bo);border-radius:7px;padding:8px;font-size:12px;color:var(--tm);cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:2px;-webkit-appearance:none}
+.col-add:active{border-color:var(--gl)}
+
+/* CARD - optimizirano za mobitel */
+.card{
+  background:var(--wh);
+  border-radius:9px;
+  padding:11px;
+  border-left:3.5px solid var(--gl);
+  box-shadow:0 1px 4px rgba(26,58,26,.07);
+  cursor:pointer;
+  -webkit-user-select:none;
+  user-select:none;
+  touch-action:none;
+  position:relative;
+  transform:translateZ(0);
+  will-change:transform;
+  transition:box-shadow .1s;
+}
+.card.dg{opacity:.4;transform:scale(.97) rotate(1deg)}
+.card[data-p="Hitno"]{border-left-color:var(--red)}
+.card[data-p="Visoko"]{border-left-color:var(--ora)}
+.card[data-p="Normalno"]{border-left-color:var(--gl)}
+.card[data-p="Nisko"]{border-left-color:var(--tm)}
+.card-tit{font-size:13px;font-weight:600;line-height:1.3;margin-bottom:3px}
+.card-desc{font-size:11px;color:var(--ts);line-height:1.4;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card-meta{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px}
+.badge{font-size:10px;font-weight:600;padding:2px 6px;border-radius:20px;display:inline-flex;align-items:center;gap:2px}
+.bp-Hitno{background:#ffebee;color:var(--red)}.bp-Visoko{background:#fff3e0;color:var(--ora)}
+.bp-Normalno{background:#e8f5e9;color:#2d6a2d}.bp-Nisko{background:#f5f5f5;color:var(--ts)}
+.br-l{background:#fce4ec;color:#ad1457}.br-ok{background:#e8f5e9;color:#2d6a2d}
+.bf{background:#f3e5f5;color:#6a1b9a}.bd{background:#e3f2fd;color:#1565c0}
+.card-hist{font-size:10px;color:var(--tm);margin-top:5px;padding-top:4px;border-top:1px solid var(--bg);display:flex;flex-wrap:wrap;gap:5px;line-height:1.4}
+.card-foot{display:flex;align-items:center;justify-content:space-between;margin-top:5px;padding-top:5px;border-top:1px solid var(--bg)}
+.card-dt{font-size:10px;color:var(--tm)}
+.card-fwd{background:none;border:none;cursor:pointer;font-size:16px;padding:3px 6px;border-radius:6px;color:var(--tm);-webkit-appearance:none}
+.card-fwd:active{background:var(--bg)}
+.thumbs{display:flex;gap:3px;flex-wrap:wrap;margin-top:4px}
+.thumb{width:42px;height:42px;border-radius:6px;object-fit:cover;border:1px solid var(--bo)}
+.thumb-doc{width:42px;height:42px;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border:1px solid var(--bo)}
+.empty{text-align:center;padding:18px 10px;color:var(--tm);font-size:12px}
+
+/* GHOST za drag */
+#tghost{position:fixed;z-index:9999;pointer-events:none;opacity:.85;transform:rotate(2deg) scale(1.04);box-shadow:0 8px 30px rgba(0,0,0,.28);border-radius:9px;background:var(--wh);padding:11px;border-left:3.5px solid var(--gl);max-width:240px;font-size:13px;font-weight:600;color:var(--tx);display:none;will-change:transform}
+
+/* MODAL - sheet od dna na mobitelu */
+.ov{position:fixed;inset:0;background:rgba(26,58,26,.5);backdrop-filter:blur(3px);z-index:200;display:none;align-items:flex-end;justify-content:center}
+.ov.open{display:flex}
+@media(min-width:640px){.ov{align-items:center}}
+.modal{background:var(--wh);border-radius:18px 18px 0 0;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:var(--safe-b);animation:mUp .22s cubic-bezier(.4,0,.2,1)}
+@media(min-width:640px){.modal{border-radius:18px;max-height:88vh}}
+@keyframes mUp{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
+.mhd{background:var(--navy);padding:14px 18px;border-radius:18px 18px 0 0;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:1}
+.mt{font-family:'DM Serif Display',serif;font-size:17px;color:#fff}
+.mc{background:rgba(255,255,255,.12);border:none;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;-webkit-appearance:none}
+.mb{padding:16px}
+.fg{margin-bottom:13px}
+.fl{display:block;font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--ts);margin-bottom:5px}
+.finp{width:100%;padding:11px 12px;border:1.5px solid var(--bo);border-radius:9px;font-size:15px;font-family:'DM Sans',sans-serif;color:var(--tx);background:var(--wh);outline:none;-webkit-appearance:none}
+.finp:focus{border-color:var(--gl)}
+textarea.finp{resize:vertical;min-height:70px}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.uz{border:2px dashed var(--bo);border-radius:9px;padding:16px;text-align:center;cursor:pointer;background:var(--bg)}
+.uz:active{border-color:var(--gl)}
+.upv{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
+.utw{position:relative;width:54px;height:54px}
+.uth{width:54px;height:54px;border-radius:7px;object-fit:cover;border:1.5px solid var(--bo)}
+.uth-doc{width:54px;height:54px;border-radius:7px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:1.5px solid var(--bo)}
+.udl{position:absolute;top:-6px;right:-6px;background:var(--red);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-appearance:none}
+.mft{padding:10px 16px 16px;border-top:1px solid var(--bg);display:flex;gap:7px;justify-content:flex-end}
+.btn{padding:10px 16px;border-radius:9px;font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;border:none;-webkit-appearance:none}
+.btn:active{opacity:.85}
+.bp2{background:var(--navy);color:#fff}.bsec{background:var(--bg);color:var(--ts);border:1.5px solid var(--bo)}.bdel{background:#ffebee;color:var(--red);border:1.5px solid #ffcdd2}
+
+/* LIGHTBOX */
+.lb3{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:300;display:none;align-items:center;justify-content:center}
+.lb3.open{display:flex}
+.lb3 img{max-width:92vw;max-height:88vh;border-radius:8px;object-fit:contain}
+.lbc{position:fixed;top:calc(16px + var(--safe-t));right:16px;background:rgba(255,255,255,.2);border:none;color:#fff;width:40px;height:40px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-appearance:none}
+
+/* CONFIRM */
+.cov{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;display:none;align-items:center;justify-content:center;padding:20px}
+.cov.open{display:flex}
+.cbox{background:var(--wh);border-radius:14px;padding:22px;max-width:300px;width:100%}
+.cmsg{font-size:15px;margin-bottom:18px;text-align:center}
+.cbts{display:flex;gap:8px}
+.cbts .btn{flex:1}
+
+/* TOAST */
+.toast{position:fixed;bottom:calc(16px + var(--safe-b));left:50%;transform:translateX(-50%) translateY(16px);background:var(--navy);color:#fff;padding:10px 20px;border-radius:28px;font-size:13px;font-weight:500;z-index:400;opacity:0;transition:all .2s;white-space:nowrap;pointer-events:none;max-width:90vw;overflow:hidden;text-overflow:ellipsis}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
 </head>
-<body style="background:#1a3a1a;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0">
-<div style="text-align:center">
-<div style="font-size:60px">🌿</div>
-<h1>Smart Zelenilo</h1>
-<p>Test verzija - uploadam pravu...</p>
+<body>
+
+<div id="tghost"></div>
+
+<!-- LOGIN -->
+<div id="LS">
+  <div class="lb">
+    <div class="ll">
+      <div class="li">🌿</div>
+      <div class="lt">Smart Zelenilo</div>
+      <div class="ls">Komunalni Servis • Rovinj</div>
+    </div>
+    <div id="lerr" class="le">❌ Pogrešno korisničko ime ili lozinka</div>
+    <label class="ll2">Korisničko ime</label>
+    <input id="lun" type="text" class="li2" placeholder="morris" autocapitalize="none" autocomplete="username" onkeydown="if(event.key==='Enter')document.getElementById('lpw').focus()">
+    <label class="ll2">Lozinka</label>
+    <input id="lpw" type="password" class="li2" placeholder="••••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="lb2" onclick="doLogin()">Prijava →</button>
+    <div class="lf">Rovinj, Hrvatska • 2026.</div>
+  </div>
 </div>
-</body></html>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-in">
+    <div class="hdr-br">
+      <div class="hdr-lg">🌿</div>
+      <div>
+        <div class="hdr-t">Smart Zelenilo</div>
+        <div class="hdr-s">OJ Zelenilo • Rovinj</div>
+      </div>
+    </div>
+    <div class="hdr-u">
+      <div class="uav" id="uav">MP</div>
+      <button class="hadd" onclick="openModal()">＋ Zadatak</button>
+    </div>
+  </div>
+  <div class="sbar">
+    <div class="si"><div class="sd" style="background:#3b6978"></div>Za odraditi: <span class="sn" id="st0">0</span></div>
+    <div class="si"><div class="sd" style="background:#c8730a"></div>U postupku: <span class="sn" id="st1">0</span></div>
+    <div class="si"><div class="sd" style="background:#2d6a2d"></div>Riješeno: <span class="sn" id="st2">0</span></div>
+  </div>
+</div>
+
+<!-- FILTER -->
+<div class="fb">
+  <input type="search" class="fi" id="fsr" placeholder="🔍 Pretraži..." oninput="render()">
+  <select class="fis" id="fpr" onchange="render()">
+    <option value="">Svi</option>
+    <option value="Hitno">🔴 Hitno</option>
+    <option value="Visoko">🟠 Visoko</option>
+    <option value="Normalno">🟢 Normalno</option>
+    <option value="Nisko">⚪ Nisko</option>
+  </select>
+</div>
+
+<!-- SCROLL WRAPPER -->
+<div class="scroll-wrap" id="scrollWrap">
+  <div class="board">
+    <div class="col">
+      <div class="col-hd todo"><span>📋</span><span class="col-tit">ZA ODRADITI</span><span class="col-cnt" id="cn0">0</span></div>
+      <div class="col-body" id="cb0" ondragover="dov(event,'todo')" ondrop="ddr(event,'todo')" ondragleave="dvl(event)"></div>
+      <div style="padding:0 7px 8px"><button class="col-add" onclick="openModal('todo')">＋ Dodaj</button></div>
+    </div>
+    <div class="col">
+      <div class="col-hd wip"><span>⚙️</span><span class="col-tit">U POSTUPKU</span><span class="col-cnt" id="cn1">0</span></div>
+      <div class="col-body" id="cb1" ondragover="dov(event,'wip')" ondrop="ddr(event,'wip')" ondragleave="dvl(event)"></div>
+      <div style="padding:0 7px 8px"><button class="col-add" onclick="openModal('wip')">＋ Dodaj</button></div>
+    </div>
+    <div class="col">
+      <div class="col-hd done"><span>✅</span><span class="col-tit">RIJEŠENO</span><span class="col-cnt" id="cn2">0</span></div>
+      <div class="col-body" id="cb2" ondragover="dov(event,'done')" ondrop="ddr(event,'done')" ondragleave="dvl(event)"></div>
+      <div style="padding:0 7px 8px"><button class="col-add" onclick="openModal('done')">＋ Dodaj</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="ov" id="ov" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="mhd">
+      <span class="mt" id="mtit">Novi zadatak</span>
+      <button class="mc" onclick="closeModal()">✕</button>
+    </div>
+    <div class="mb">
+      <div class="fg">
+        <label class="fl">Naziv *</label>
+        <input type="text" id="mn" class="finp" placeholder="npr. Košnja travnjaka — Park Šumica">
+      </div>
+      <div class="fg">
+        <label class="fl">Opis / napomena</label>
+        <textarea id="mo" class="finp" placeholder="Detalji, lokacija..."></textarea>
+      </div>
+      <div class="fr" style="margin-bottom:13px">
+        <div>
+          <label class="fl">Prioritet</label>
+          <select id="mp" class="finp">
+            <option value="Normalno">🟢 Normalno</option>
+            <option value="Visoko">🟠 Visoko</option>
+            <option value="Hitno">🔴 Hitno</option>
+            <option value="Nisko">⚪ Nisko</option>
+          </select>
+        </div>
+        <div>
+          <label class="fl">Rok</label>
+          <input type="date" id="mr" class="finp">
+        </div>
+      </div>
+      <div class="fg">
+        <label class="fl">Stupac</label>
+        <select id="ms" class="finp">
+          <option value="todo">📋 Za odraditi</option>
+          <option value="wip">⚙️ U postupku</option>
+          <option value="done">✅ Riješeno</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label class="fl">Privitci (slike, PDF, Word, Excel)</label>
+        <div class="uz" onclick="document.getElementById('mf').click()">
+          <input type="file" id="mf" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:none" onchange="addFiles(event)">
+          <div style="font-size:22px;margin-bottom:4px">📎</div>
+          <div style="font-size:12px;color:var(--tm)">Klikni — slike, PDF, Word, Excel</div>
+        </div>
+        <div class="upv" id="upv"></div>
+      </div>
+    </div>
+    <div class="mft">
+      <button class="btn bsec" onclick="closeModal()">Odustani</button>
+      <button class="btn bdel" id="bdel" style="display:none" onclick="deleteTask()">🗑️</button>
+      <button class="btn bp2" onclick="saveTask()">💾 Spremi</button>
+    </div>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lb3" id="lb3" onclick="this.classList.remove('open')">
+  <button class="lbc" onclick="document.getElementById('lb3').classList.remove('open')">✕</button>
+  <img id="lbi" src="" alt="">
+</div>
+
+<!-- CONFIRM -->
+<div class="cov" id="cov">
+  <div class="cbox">
+    <div class="cmsg" id="cmsg"></div>
+    <div class="cbts">
+      <button class="btn bsec" onclick="cRes(false)">Odustani</button>
+      <button class="btn bdel" onclick="cRes(true)">Obriši</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="tst"></div>
+
+<script>
+const USERS={morris:{name:'Morris Peruško',av:'MP'},dean:{name:'Dean Vaci',av:'DV'},ervino:{name:'Ervino Rudan',av:'ER'},kristijan:{name:'Kristijan Laginja',av:'KL'}};
+const PWD='ZELENILORV!';
+const VAPID='BMQpj8Kaj46hRN26R9Lc3ujFmvwfev1I2gdffPdZwefIgC8bpNKxsUT4jDvpSFuV0xQoIVlHtNXIeNdLXgbeMRU';
+const COLS=['todo','wip','done'];
+const CNAME={todo:'Za odraditi',wip:'U postupku',done:'Riješeno'};
+const CICON={todo:'📋',wip:'⚙️',done:'✅'};
+const CBID=['cb0','cb1','cb2'];
+
+let me='', tasks=[], eid=null, tmpF=[], dragId=null, cfnCb=null, lastSeen={};
+let tId=null, tGhost=null, tSX=0, tSY=0, tLP=null, tActive=false;
+
+// FIREBASE
+window.addEventListener('fbOK',()=>{ if(me){initFb();initFCM();} });
+
+function initFb(){
+  if(!window._fbOK) return;
+  window._onValue(window._ref(window._db,'zelenilo/kanban'),snap=>{
+    const data=snap.val();
+    const prev=tasks.map(t=>t.id);
+    tasks=data?Object.values(data).sort((a,b)=>(b.ts||0)-(a.ts||0)):[];
+    tasks.forEach(t=>{
+      if(!prev.includes(t.id)&&prev.length>0&&t.kreirao!==me){
+        doNotif('📋 Novi zadatak','"'+t.naziv+'" dodao '+t.kreirao?.split(' ')[0]);
+        showToast('📋 Novi: "'+t.naziv+'"');
+      } else if(lastSeen[t.id]&&lastSeen[t.id]!==t.status&&t.tkoMjenjao&&t.tkoMjenjao!==me){
+        doNotif(CICON[t.status]+' Premješteno','"'+t.naziv+'" → '+CNAME[t.status]+' ('+t.tkoMjenjao?.split(' ')[0]+')');
+        showToast(CICON[t.status]+' "'+t.naziv+'" → '+CNAME[t.status]);
+      }
+      lastSeen[t.id]=t.status;
+    });
+    render();
+  });
+}
+
+function syncFb(){
+  localStorage.setItem('sz_t',JSON.stringify(tasks));
+  if(!window._fbOK) return;
+  const obj={};
+  tasks.forEach(t=>{obj[t.id]=t;});
+  window._set(window._ref(window._db,'zelenilo/kanban'),obj);
+}
+
+function triggerNotif(title,body){
+  if(!window._fbOK) return;
+  window._set(window._ref(window._db,'zelenilo/notifications/n'+Date.now()),{title,body,from:me,ts:Date.now()});
+}
+
+async function initFCM(){
+  if(!window._msg||!window._getToken) return;
+  try{
+    const reg=await navigator.serviceWorker.ready;
+    const token=await window._getToken(window._msg,{vapidKey:VAPID,serviceWorkerRegistration:reg});
+    if(token&&window._fbOK){
+      const k=me.replace(/[^a-zA-Z0-9]/g,'_');
+      window._set(window._ref(window._db,'zelenilo/push_subs/'+k),{token,user:me,ts:Date.now()});
+    }
+  }catch(e){console.log('FCM:',e);}
+}
+
+// LOGIN
+function doLogin(){
+  const u=(document.getElementById('lun').value||'').trim().toLowerCase();
+  const p=document.getElementById('lpw').value;
+  const err=document.getElementById('lerr');
+  if(!USERS[u]||p!==PWD){err.style.display='block';document.getElementById('lpw').value='';return;}
+  err.style.display='none';
+  me=USERS[u].name;
+  document.getElementById('uav').textContent=USERS[u].av;
+  document.getElementById('LS').style.display='none';
+  localStorage.setItem('sz_u',u);
+  const loc=localStorage.getItem('sz_t');
+  if(loc) tasks=JSON.parse(loc);
+  render();
+  if(window._fbOK){initFb();initFCM();}
+  if('Notification'in window&&Notification.permission==='default'){
+    Notification.requestPermission().then(p=>{if(p==='granted')initFCM();});
+  }
+  showToast('Dobrodošao/la, '+me.split(' ')[0]+'! 👋');
+}
+
+// RENDER
+function render(){
+  const s=(document.getElementById('fsr')?.value||'').toLowerCase();
+  const p=document.getElementById('fpr')?.value||'';
+  COLS.forEach((col,i)=>{
+    const body=document.getElementById(CBID[i]);
+    if(!body) return;
+    let list=tasks.filter(t=>t.status===col);
+    if(s) list=list.filter(t=>(t.naziv||'').toLowerCase().includes(s)||(t.opis||'').toLowerCase().includes(s));
+    if(p) list=list.filter(t=>t.prioritet===p);
+    const total=tasks.filter(t=>t.status===col).length;
+    document.getElementById('cn'+i).textContent=total;
+    document.getElementById('st'+i).textContent=total;
+    body.innerHTML=list.length?list.map(card).join(''):'<div class="empty">Nema zadataka</div>';
+    body.querySelectorAll('.card').forEach(el=>{
+      el.addEventListener('touchstart',e=>tStart(e,el.dataset.id),{passive:false});
+      el.addEventListener('touchmove',tMove,{passive:false});
+      el.addEventListener('touchend',tEnd,{passive:true});
+      el.addEventListener('touchcancel',tCancel,{passive:true});
+    });
+  });
+}
+
+function fileIcon(f){
+  if(f.type?.startsWith('image/')) return null;
+  if(f.type?.includes('pdf')||f.name?.endsWith('.pdf')) return {icon:'📄',color:'#ffebee',label:'PDF',tc:'#c0392b'};
+  if(f.name?.endsWith('.docx')||f.name?.endsWith('.doc')) return {icon:'📝',color:'#e3f2fd',label:'DOC',tc:'#1565c0'};
+  if(f.name?.endsWith('.xlsx')||f.name?.endsWith('.xls')) return {icon:'📊',color:'#e8f5e9',label:'XLS',tc:'#2e7d32'};
+  return {icon:'📎',color:'#f5f5f5',label:(f.name||'').split('.').pop().toUpperCase().substring(0,4),tc:'#666'};
+}
+
+function card(t){
+  const today=new Date().toISOString().split('T')[0];
+  const rok=t.rok?'<span class="badge '+(t.rok<today?'br-l':'br-ok')+'">📅 '+fd(t.rok)+'</span>':'';
+  const pi={Hitno:'🔴',Visoko:'🟠',Normalno:'🟢',Nisko:'⚪'}[t.prioritet]||'🟢';
+  const files=t.files||[];
+  const imgs=files.filter(f=>f.type?.startsWith('image/'));
+  const docs=files.filter(f=>!f.type?.startsWith('image/'));
+  const fBadge=(imgs.length?'<span class="badge bf">🖼️ '+imgs.length+'</span>':'')+(docs.length?'<span class="badge bd">📄 '+docs.length+'</span>':'');
+  const thumbsHtml=files.length?'<div class="thumbs">'+files.slice(0,4).map(f=>{
+    const fi=fileIcon(f);
+    if(!fi) return '<img class="thumb" src="'+f.data+'" loading="lazy">';
+    return '<div class="thumb-doc" style="background:'+fi.color+'"><span style="font-size:16px">'+fi.icon+'</span><span style="font-size:8px;color:'+fi.tc+';font-weight:700">'+fi.label+'</span></div>';
+  }).join('')+(files.length>4?'<div class="thumb-doc" style="background:var(--bg)"><span style="font-size:11px;color:var(--ts)">+'+( files.length-4)+'</span></div>':'')+'</div>':'';
+  let hist='';
+  if(t.kreirao) hist+='<span>✍️ '+t.kreirao.split(' ')[0]+'</span>';
+  if(t.tkoMjenjao&&t.tkoMjenjao!==t.kreirao){
+    const a=t.status==='wip'?'▶️':t.status==='done'?'✅':'🔄';
+    hist+='<span>'+a+' '+t.tkoMjenjao.split(' ')[0]+'</span>';
+  }
+  if(t.updated) hist+='<span style="color:var(--bo)">'+fd(t.updated)+'</span>';
+  return '<div class="card" data-id="'+t.id+'" data-p="'+t.prioritet+'" draggable="true" onclick="openEdit(\''+t.id+'\')" ondragstart="ds(event,\''+t.id+'\')" ondragend="de(event)">'+
+    '<div style="display:flex;align-items:flex-start;gap:5px">'+
+    '<div class="card-tit" style="flex:1">'+esc(t.naziv||'')+'</div>'+
+    '<button class="card-fwd" onclick="event.stopPropagation();mvFwd(\''+t.id+'\')" title="Naprijed">→</button>'+
+    '</div>'+
+    (t.opis?'<div class="card-desc">'+esc(t.opis)+'</div>':'')+
+    thumbsHtml+
+    '<div class="card-meta"><span class="badge bp-'+t.prioritet+'">'+pi+' '+t.prioritet+'</span>'+rok+fBadge+'</div>'+
+    (hist?'<div class="card-hist">'+hist+'</div>':'')+
+    '<div class="card-foot"><span class="card-dt">'+fd(t.dat||'')+'</span></div>'+
+    '</div>';
+}
+
+// MODAL
+function openModal(status){
+  eid=null;tmpF=[];
+  document.getElementById('mn').value='';
+  document.getElementById('mo').value='';
+  document.getElementById('mp').value='Normalno';
+  document.getElementById('mr').value='';
+  document.getElementById('ms').value=status||'todo';
+  document.getElementById('upv').innerHTML='';
+  document.getElementById('bdel').style.display='none';
+  document.getElementById('mtit').textContent='Novi zadatak';
+  document.getElementById('ov').classList.add('open');
+  setTimeout(()=>document.getElementById('mn').focus(),150);
+}
+
+function openEdit(id){
+  const t=tasks.find(x=>x.id===id);
+  if(!t) return;
+  eid=id;tmpF=JSON.parse(JSON.stringify(t.files||[]));
+  document.getElementById('mn').value=t.naziv||'';
+  document.getElementById('mo').value=t.opis||'';
+  document.getElementById('mp').value=t.prioritet||'Normalno';
+  document.getElementById('mr').value=t.rok||'';
+  document.getElementById('ms').value=t.status||'todo';
+  document.getElementById('bdel').style.display='';
+  document.getElementById('mtit').textContent='Uredi zadatak';
+  renderUpv();
+  document.getElementById('ov').classList.add('open');
+}
+
+function closeModal(){document.getElementById('ov').classList.remove('open');tmpF=[];}
+
+function saveTask(){
+  const naziv=document.getElementById('mn').value.trim();
+  if(!naziv){showToast('Unesite naziv!');document.getElementById('mn').focus();return;}
+  const ns=document.getElementById('ms').value;
+  if(eid){
+    const i=tasks.findIndex(x=>x.id===eid);
+    if(i>=0){
+      const old=tasks[i].status;
+      tasks[i]={...tasks[i],naziv,opis:document.getElementById('mo').value.trim(),prioritet:document.getElementById('mp').value,rok:document.getElementById('mr').value,status:ns,files:[...tmpF],tkoMjenjao:me,updated:new Date().toISOString().split('T')[0]};
+      lastSeen[eid]=ns;
+      if(old!==ns){triggerNotif(CICON[ns]+' Premješteno','"'+naziv+'" → '+CNAME[ns]+' ('+me.split(' ')[0]+')');showToast(CICON[ns]+' Premješteno!');}
+      else showToast('Ažurirano ✅');
+    }
+  } else {
+    const id='t'+Date.now();
+    tasks.unshift({id,naziv,opis:document.getElementById('mo').value.trim(),prioritet:document.getElementById('mp').value,rok:document.getElementById('mr').value,status:ns,files:[...tmpF],kreirao:me,tkoMjenjao:me,dat:new Date().toISOString().split('T')[0],ts:Date.now()});
+    lastSeen[id]=ns;
+    triggerNotif('📋 Novi zadatak','"'+naziv+'" ('+me.split(' ')[0]+')');
+    showToast('📋 Dodano: "'+naziv+'"');
+  }
+  syncFb();render();closeModal();
+}
+
+function deleteTask(){
+  if(!eid) return;
+  showConfirm('Obrisati ovaj zadatak?',()=>{tasks=tasks.filter(x=>x.id!==eid);syncFb();render();closeModal();showToast('Obrisano');});
+}
+
+// FILES - prihvaća sve tipove
+function addFiles(e){
+  Array.from(e.target.files).forEach(f=>{
+    const r=new FileReader();
+    r.onload=ev=>{tmpF.push({name:f.name,type:f.type||'application/octet-stream',data:ev.target.result});renderUpv();};
+    r.readAsDataURL(f);
+  });
+  e.target.value='';
+}
+
+function renderUpv(){
+  document.getElementById('upv').innerHTML=tmpF.map((f,i)=>{
+    const fi=fileIcon(f);
+    const preview=fi?
+      '<div class="uth-doc" style="background:'+fi.color+'"><span style="font-size:18px">'+fi.icon+'</span><span style="font-size:8px;color:'+fi.tc+';font-weight:700">'+fi.label+'</span></div>':
+      '<img class="uth" src="'+f.data+'" onclick="openLB(\''+f.data+'\')">';
+    return '<div class="utw" title="'+esc(f.name||'')+'">'+preview+'<button class="udl" onclick="tmpF.splice('+i+',1);renderUpv()">✕</button></div>';
+  }).join('');
+}
+
+// LIGHTBOX
+function openLB(src){document.getElementById('lbi').src=src;document.getElementById('lb3').classList.add('open');}
+
+// CONFIRM
+function showConfirm(msg,cb){cfnCb=cb;document.getElementById('cmsg').textContent=msg;document.getElementById('cov').classList.add('open');}
+function cRes(yes){document.getElementById('cov').classList.remove('open');if(yes&&cfnCb)cfnCb();cfnCb=null;}
+
+// TOAST
+function showToast(msg){const el=document.getElementById('tst');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2800);}
+
+// NOTIF
+function doNotif(title,body){
+  if('Notification'in window&&Notification.permission==='granted'){
+    if('serviceWorker'in navigator&&navigator.serviceWorker.controller){
+      navigator.serviceWorker.controller.postMessage({type:'SHOW_NOTIFICATION',title,body});
+    } else {
+      new Notification(title,{body,icon:'icon-192.png',badge:'icon-192.png',vibrate:[300,100,300]});
+    }
+  }
+}
+
+// DRAG & DROP desktop
+function ds(e,id){dragId=id;e.dataTransfer.effectAllowed='move';setTimeout(()=>{const el=document.querySelector('.card[data-id="'+id+'"]');if(el)el.classList.add('dg');},0);}
+function de(){document.querySelectorAll('.card.dg').forEach(e=>e.classList.remove('dg'));document.querySelectorAll('.col-body.dov').forEach(e=>e.classList.remove('dov'));}
+function dov(e,col){e.preventDefault();document.querySelectorAll('.col-body').forEach(e=>e.classList.remove('dov'));document.getElementById(CBID[COLS.indexOf(col)]).classList.add('dov');}
+function dvl(e){if(!e.currentTarget.contains(e.relatedTarget))e.currentTarget.classList.remove('dov');}
+function ddr(e,col){
+  e.preventDefault();document.querySelectorAll('.col-body').forEach(e=>e.classList.remove('dov'));
+  if(!dragId) return;
+  const t=tasks.find(x=>x.id===dragId);
+  if(t&&t.status!==col){
+    t.status=col;t.tkoMjenjao=me;t.updated=new Date().toISOString().split('T')[0];lastSeen[t.id]=col;
+    syncFb();render();
+    triggerNotif(CICON[col]+' Premješteno','"'+t.naziv+'" → '+CNAME[col]+' ('+me.split(' ')[0]+')');
+    showToast(CICON[col]+' "'+t.naziv+'" → '+CNAME[col]);
+  }
+  dragId=null;
+}
+
+// TOUCH DRAG - iPhone/Android
+function tStart(e,id){
+  tId=id;tActive=false;
+  const touch=e.touches[0];
+  tSX=touch.clientX;tSY=touch.clientY;
+  tLP=setTimeout(()=>{
+    const t=tasks.find(x=>x.id===id);if(!t)return;
+    tActive=true;
+    const ghost=document.getElementById('tghost');
+    ghost.textContent=t.naziv;
+    ghost.style.display='block';
+    ghost.style.left=(tSX-120)+'px';
+    ghost.style.top=(tSY-30)+'px';
+    tGhost=ghost;
+    const card=document.querySelector('.card[data-id="'+id+'"]');
+    if(card)card.classList.add('dg');
+    if(navigator.vibrate)navigator.vibrate(60);
+  },450);
+}
+
+function tMove(e){
+  if(!tId)return;
+  const touch=e.touches[0];
+  const dx=touch.clientX-tSX, dy=touch.clientY-tSY;
+  if(!tActive&&(Math.abs(dx)>8||Math.abs(dy)>8)){clearTimeout(tLP);tId=null;return;}
+  if(tActive&&tGhost){
+    e.preventDefault();
+    tGhost.style.left=(touch.clientX-120)+'px';
+    tGhost.style.top=(touch.clientY-30)+'px';
+    document.querySelectorAll('.col-body').forEach(el=>el.classList.remove('dov'));
+    const el=document.elementFromPoint(touch.clientX,touch.clientY);
+    const col=el?.closest('.col-body');
+    if(col)col.classList.add('dov');
+  }
+}
+
+function tEnd(e){
+  clearTimeout(tLP);
+  if(tGhost){
+    tGhost.style.display='none';tGhost=null;
+    document.querySelectorAll('.col-body').forEach(el=>el.classList.remove('dov'));
+    const card=document.querySelector('.card[data-id="'+tId+'"]');
+    if(card)card.classList.remove('dg');
+    if(tActive){
+      const touch=e.changedTouches[0];
+      const el=document.elementFromPoint(touch.clientX,touch.clientY);
+      const colBody=el?.closest('.col-body');
+      if(colBody){
+        const idx=CBID.indexOf(colBody.id);
+        if(idx>=0){
+          const col=COLS[idx];
+          const t=tasks.find(x=>x.id===tId);
+          if(t&&t.status!==col){
+            t.status=col;t.tkoMjenjao=me;t.updated=new Date().toISOString().split('T')[0];lastSeen[t.id]=col;
+            syncFb();render();
+            triggerNotif(CICON[col]+' Premješteno','"'+t.naziv+'" → '+CNAME[col]+' ('+me.split(' ')[0]+')');
+            showToast(CICON[col]+' "'+t.naziv+'" → '+CNAME[col]);
+          }
+        }
+      }
+    }
+  }
+  tId=null;tActive=false;
+}
+
+function tCancel(){
+  clearTimeout(tLP);
+  if(tGhost){tGhost.style.display='none';tGhost=null;}
+  document.querySelectorAll('.col-body').forEach(el=>el.classList.remove('dov'));
+  const card=document.querySelector('.card[data-id="'+tId+'"]');
+  if(card)card.classList.remove('dg');
+  tId=null;tActive=false;
+}
+
+// MOVE FORWARD
+function mvFwd(id){
+  const t=tasks.find(x=>x.id===id);if(!t)return;
+  const i=COLS.indexOf(t.status);
+  if(i<COLS.length-1){
+    t.status=COLS[i+1];t.tkoMjenjao=me;t.updated=new Date().toISOString().split('T')[0];lastSeen[t.id]=t.status;
+    syncFb();render();
+    triggerNotif(CICON[t.status]+' Premješteno','"'+t.naziv+'" → '+CNAME[t.status]+' ('+me.split(' ')[0]+')');
+    showToast(CICON[t.status]+' "'+t.naziv+'" → '+CNAME[t.status]);
+  }
+}
+
+// UTILS
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function fd(d){if(!d)return '';const p=d.split('-');return p[2]+'.'+p[1]+'.';}
+
+// ESC
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();document.getElementById('lb3').classList.remove('open');}});
+
+// INIT
+(function init(){
+  const u=localStorage.getItem('sz_u');
+  if(u&&USERS[u]){document.getElementById('lun').value=u;document.getElementById('lpw').value=PWD;doLogin();}
+  else document.getElementById('lun').focus();
+})();
+</script>
+
+<script>
+if('serviceWorker'in navigator){
+  navigator.serviceWorker.register('sw.js').then(reg=>{
+    navigator.serviceWorker.addEventListener('message',e=>{if(e.data?.type==='TOAST')showToast(e.data.msg);});
+  }).catch(e=>console.log('SW:',e));
+}
+</script>
+</body>
+</html>
