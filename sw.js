@@ -3,13 +3,13 @@ importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-comp
 
 // Firebase config u SW
 firebase.initializeApp({
-  apiKey: "AIzaSyC6wnZHBTRKMdFDq_KjkHqHoRTxOqBJ3tM",
+  apiKey: "AIzaSyBSbUaG8Mz5bkZgl-KGaiQx3AtzvjCDPLE",
   authDomain: "zelenilo-rovinj.firebaseapp.com",
   databaseURL: "https://zelenilo-rovinj-default-rtdb.europe-west1.firebasedatabase.app",
   projectId: "zelenilo-rovinj",
   storageBucket: "zelenilo-rovinj.firebasestorage.app",
-  messagingSenderId: "427893403608",
-  appId: "1:427893403608:web:sz001"
+  messagingSenderId: "1050602141317",
+  appId: "1:1050602141317:web:ad083652b2254eedf89bec"
 });
 
 const messaging = firebase.messaging();
