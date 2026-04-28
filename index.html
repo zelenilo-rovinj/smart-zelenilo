@@ -26,7 +26,7 @@ const cfg = {
   appId:"1:1050602141317:web:ad083652b2254eedf89bec"
 };
 try {
-  const app = initializeApp(cfg);const auth=getAuth(app);signInAnonymously(auth).catch(e=>console.log('anon auth err',e));
+  const app = initializeApp(cfg);const auth=getAuth(app);signInAnonymously(auth).then(()=>{window.dispatchEvent(new Event('authReady'));}).catch(e=>console.log('anon auth err',e));
   const db = getDatabase(app);
   window._db=db; window._ref=ref; window._set=set; window._onValue=onValue; window._push=push;
   try {
@@ -380,7 +380,7 @@ let me='', tasks=[], eid=null, tmpF=[], dragId=null, cfnCb=null, lastSeen={};
 let tId=null, tGhost=null, tSX=0, tSY=0, tLP=null, tActive=false;
 
 // FIREBASE
-window.addEventListener('fbOK',()=>{ if(me){initFb();initFCM();} });
+window.addEventListener('fbOK',()=>{ if(me){initFb();window.addEventListener('authReady',()=>initFCM(),{once:true});} });
 
 function initFb(){
   if(!window._fbOK) return;
