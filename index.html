@@ -15,7 +15,7 @@
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
 import { getDatabase, ref, set, onValue, push } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js';
-import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging.js';
+import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
 const cfg = {
   apiKey:"AIzaSyBSbUaG8Mz5bkZgl-KGaiQx3AtzvjCDPLE",
   authDomain:"zelenilo-rovinj.firebaseapp.com",
@@ -31,7 +31,7 @@ try {
   window._db=db; window._ref=ref; window._set=set; window._onValue=onValue; window._push=push;
   try {
     const msg = getMessaging(app);
-    window._msg=msg; window._getToken=getToken; window._onMsg=onMessage;
+    const msgCompat=firebase.messaging();window._msg=msgCompat;window._getToken=(m,o)=>m.getToken(o);window._onMsg=onMessage;
     onMessage(msg, p => showToast((p.notification?.title||'')+(p.notification?.body?': '+p.notification.body:'')));
   } catch(e){}
   window._fbOK=true;
@@ -213,7 +213,7 @@ textarea.finp{resize:vertical;min-height:70px}
 .toast{position:fixed;bottom:calc(16px + var(--safe-b));left:50%;transform:translateX(-50%) translateY(16px);background:var(--navy);color:#fff;padding:10px 20px;border-radius:28px;font-size:13px;font-weight:500;z-index:400;opacity:0;transition:all .2s;white-space:nowrap;pointer-events:none;max-width:90vw;overflow:hidden;text-overflow:ellipsis}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 </style>
-</head>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js"></script></head>
 <body>
 
 <div id="tghost"></div>
