@@ -15,7 +15,7 @@
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
 import { getDatabase, ref, set, onValue, push } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js';
-import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging.js';
+import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging.js';
 const cfg = {
   apiKey:"AIzaSyBSbUaG8Mz5bkZgl-KGaiQx3AtzvjCDPLE",
   authDomain:"zelenilo-rovinj.firebaseapp.com",
@@ -415,7 +415,7 @@ function triggerNotif(title,body){
   window._set(window._ref(window._db,'zelenilo/notifications/n'+Date.now()),{title,body,from:me,ts:Date.now()});
 }
 
-async function initFCM(){
+async function ensureFirebaseAuth(){try{const auth=getAuth();if(!auth.currentUser){await signInAnonymously(auth);}}catch(e){console.log('Auth error',e);}}async function initFCM(){await ensureFirebaseAuth();
   if(!window._msg||!window._getToken) return;
   try{
     const reg=await navigator.serviceWorker.ready;
