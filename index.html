@@ -419,7 +419,7 @@ async function initFCM(){
   if(!window._msg||!window._getToken) return;
   try{
     const reg=await navigator.serviceWorker.ready;
-    const token=await window._getToken(window._msg,{vapidKey:VAPID,serviceWorkerRegistration:reg});
+    await new Promise(r=>setTimeout(r,2000));const token=await window._getToken(window._msg,{vapidKey:VAPID,serviceWorkerRegistration:reg});
     if(token&&window._fbOK){
       const k=me.replace(/[^a-zA-Z0-9]/g,'_');
       window._set(window._ref(window._db,'zelenilo/push_subs/'+k),{token,user:me,ts:Date.now()});
