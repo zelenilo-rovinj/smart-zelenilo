@@ -418,11 +418,12 @@ function triggerNotif(title,body){
 async function initFCM(){
   if(!window._fbOK||!window._db) return;
   if(Notification.permission!=='granted') return;
-  const { onChildAdded, ref } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js');
-  const notifRef = ref(window._db,'zelenilo/notifications');
+  const { onChildAdded, ref, query, orderByChild, startAt } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js');
+  const now = Date.now();
+  const notifRef = query(ref(window._db,'zelenilo/notifications'), orderByChild('ts'), startAt(now));
   onChildAdded(notifRef, snap=>{
     const d=snap.val();
-    if(d&&d.from!==me&&d.ts&&(Date.now()-d.ts)<30000){
+    if(d&&d.from!==me){
       navigator.serviceWorker.ready.then(reg=>{
         if(reg.active) reg.active.postMessage({type:'SHOW_NOTIFICATION',title:d.title,body:d.body});
       });
