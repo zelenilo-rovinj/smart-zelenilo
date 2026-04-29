@@ -444,7 +444,7 @@ function doLogin(){
   const loc=localStorage.getItem('sz_t');
   if(loc) tasks=JSON.parse(loc);
   render();
-  if(window._fbOK){initFb();initFCM();}
+  if(window._fbOK){initFb();setTimeout(()=>initFCM(),1000);}
   if('Notification'in window&&Notification.permission==='default'){
     Notification.requestPermission().then(p=>{if(p==='granted')initFCM();});
   }
