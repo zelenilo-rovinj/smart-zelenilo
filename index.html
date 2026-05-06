@@ -15,7 +15,7 @@
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
 import { getDatabase, ref, set, onValue, push } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js';
-import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
+import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging.js';window._getMessagingFn=getMessaging;window._getTokenFn=getToken;window._onMessageFn=onMessage;
 const cfg = {
   apiKey:"AIzaSyBSbUaG8Mz5bkZgl-KGaiQx3AtzvjCDPLE",
   authDomain:"zelenilo-rovinj.firebaseapp.com",
@@ -29,11 +29,11 @@ try {
   const app = initializeApp(cfg);const auth=getAuth(app);signInAnonymously(auth).then(()=>{console.log('AUTH OK');window._authDone=true;window.dispatchEvent(new Event('authReady'));}).catch(e=>console.log('anon auth err',e));
   const db = getDatabase(app);
   window._db=db; window._ref=ref; window._set=set; window._onValue=onValue; window._push=push;
-  try {
-    const msg = getMessaging(app);
-    const msgCompat=firebase.messaging();window._msg=msgCompat;window._getToken=(m,o)=>m.getToken(o);window._onMsg=onMessage;
+  console.log('BEFORE MSG');try {
+    const msg = window._getMessagingFn(app);rker.ready;
+    window._msg=msg;window._getToken=getToken;window._onMsg=onMessage;console.log('MSG OK',msg);
     onMessage(msg, p => showToast((p.notification?.title||'')+(p.notification?.body?': '+p.notification.body:'')));
-  } catch(e){}
+  } catch(e){console.log('MSG ERR:',e);}
   window._fbOK=true;
   window.dispatchEvent(new Event('fbOK'));
 } catch(e){ console.log('FB:',e); }
@@ -213,7 +213,7 @@ textarea.finp{resize:vertical;min-height:70px}
 .toast{position:fixed;bottom:calc(16px + var(--safe-b));left:50%;transform:translateX(-50%) translateY(16px);background:var(--navy);color:#fff;padding:10px 20px;border-radius:28px;font-size:13px;font-weight:500;z-index:400;opacity:0;transition:all .2s;white-space:nowrap;pointer-events:none;max-width:90vw;overflow:hidden;text-overflow:ellipsis}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 </style>
-<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js"></script></head>
+</head>
 <body>
 
 <div id="tghost"></div>
@@ -404,10 +404,12 @@ function initFb(){
 
 function syncFb(){
   localStorage.setItem('sz_t',JSON.stringify(tasks));
-  if(!window._fbOK) return;
+  if(!window._fbOK){showToast('FB nije spojen!');return;}
   const obj={};
   tasks.forEach(t=>{obj[t.id]=t;});
-  window._set(window._ref(window._db,'zelenilo/kanban'),obj);
+  window._set(window._ref(window._db,'zelenilo/kanban'),obj)
+    .then(()=>showToast('Oblak OK!'))
+    .catch(e=>showToast('Greska: '+e.code));
 }
 
 function triggerNotif(title,body){
