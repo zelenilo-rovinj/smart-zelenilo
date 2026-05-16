@@ -177,8 +177,8 @@ body{
 .ov{position:fixed;inset:0;background:rgba(26,58,26,.5);backdrop-filter:blur(3px);z-index:200;display:none;align-items:flex-end;justify-content:center}
 .ov.open{display:flex}
 @media(min-width:640px){.ov{align-items:center}}
-.modal{background:var(--wh);border-radius:18px 18px 0 0;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:var(--safe-b);animation:mUp .22s cubic-bezier(.4,0,.2,1)}
-@media(min-width:640px){.modal{border-radius:18px;max-height:88vh}}
+.modal{background:var(--wh);border-radius:18px 18px 0 0;width:100%;max-width:520px;max-height:90vh;max-height:90dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:var(--safe-b);animation:mUp .22s cubic-bezier(.4,0,.2,1)}
+@media(min-width:640px){.modal{border-radius:18px;max-height:88vh;max-height:88dvh}}
 @keyframes mUp{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
 .mhd{background:var(--navy);padding:14px 18px;border-radius:18px 18px 0 0;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:1}
 .mt{font-family:'DM Serif Display',serif;font-size:17px;color:#fff}
@@ -435,9 +435,13 @@ function triggerNotif(title,body){
   window._set(window._ref(window._db,APP_CONFIG.dbPaths.notifications+'/n'+Date.now()),{title,body,from:me,ts:Date.now()});
 }
 
+function isIOS(){return/iphone|ipad|ipod/i.test(navigator.userAgent);}
+function isIOSPWA(){return isIOS()&&navigator.standalone===true;}
+
 async function initFCM(){
   if(!window._fbOK||!window._db||!window._msg) return;
   if(Notification.permission!=='granted') return;
+  if(!('PushManager'in window)){console.log('FCM: PushManager not available');return;}
   try {
     const reg = await navigator.serviceWorker.ready;
     const token = await window._getToken(window._msg,{
@@ -470,7 +474,11 @@ function doLogin(){
   render();
   if(window._fbOK){initFb();setTimeout(()=>initFCM(),1000);}
   if('Notification'in window&&Notification.permission==='default'){
-    Notification.requestPermission().then(p=>{if(p==='granted')initFCM();});
+    if(isIOS()&&!isIOSPWA()){
+      showToast('📱 Dodaj app na početni zaslon za obavijesti');
+    } else {
+      Notification.requestPermission().then(p=>{if(p==='granted')initFCM();});
+    }
   }
   showToast('Dobrodošao/la, '+me.split(' ')[0]+'! 👋');
 }
@@ -492,7 +500,7 @@ function render(){
     body.querySelectorAll('.card').forEach(el=>{
       const h=el.querySelector('.drag-handle');
       if(h){
-        h.addEventListener('touchstart',e=>{e.stopPropagation();tStart(e,el.dataset.id);},{passive:false});
+        h.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();tStart(e,el.dataset.id);},{passive:false});
         h.addEventListener('touchmove',tMove,{passive:false});
         h.addEventListener('touchend',tEnd,{passive:true});
         h.addEventListener('touchcancel',tCancel,{passive:true});
@@ -555,7 +563,6 @@ function openModal(status){
   document.getElementById('bdel').style.display='none';
   document.getElementById('mtit').textContent='Novi zadatak';
   document.getElementById('ov').classList.add('open');
-  setTimeout(()=>document.getElementById('mn').focus(),150);
 }
 
 function openEdit(id){
@@ -748,16 +755,16 @@ function tStart(e,id){
     const card=document.querySelector('.card[data-id="'+id+'"]');
     if(card)card.classList.add('dg');
     if(navigator.vibrate)navigator.vibrate(60);
-  },450);
+  },250);
 }
 
 function tMove(e){
   if(!tId)return;
+  e.preventDefault();
   const touch=e.touches[0];
   const dx=touch.clientX-tSX, dy=touch.clientY-tSY;
-  if(!tActive&&(Math.abs(dx)>8||Math.abs(dy)>8)){clearTimeout(tLP);tId=null;return;}
+  if(!tActive&&(Math.abs(dx)>10||Math.abs(dy)>10)){clearTimeout(tLP);tId=null;return;}
   if(tActive&&tGhost){
-    e.preventDefault();
     tGhost.style.left=(touch.clientX-120)+'px';
     tGhost.style.top=(touch.clientY-30)+'px';
     document.querySelectorAll('.col-body').forEach(el=>el.classList.remove('dov'));
