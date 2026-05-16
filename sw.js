@@ -1,6 +1,6 @@
 importScripts('./config.js');
-importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js');
 
 firebase.initializeApp(APP_CONFIG.firebase);
 
@@ -19,20 +19,6 @@ messaging.onBackgroundMessage((payload) => {
     vibrate: [300, 100, 300, 100, 300],
     data: { url: './' }
   });
-});
-
-self.addEventListener('push', e => {
-  const data = e.data ? e.data.json() : {};
-  e.waitUntil(
-    self.registration.showNotification(data.title || APP_CONFIG.appName, {
-      body: data.body || '',
-      icon: './icon-192.png',
-      badge: './icon-192.png',
-      tag: 'sz-push',
-      renotify: true,
-      vibrate: [300, 100, 300]
-    })
-  );
 });
 
 const CACHE = APP_CONFIG.cacheVersion;

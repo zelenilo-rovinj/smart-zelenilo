@@ -26,9 +26,9 @@
 })();
 </script>
 <script type="module">
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
-import { getDatabase, ref, set, onValue, push } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js';
-import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging.js';window._getMessagingFn=getMessaging;window._getTokenFn=getToken;window._onMessageFn=onMessage;
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
+import { getDatabase, ref, set, onValue, push } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js';
+import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging.js';window._getMessagingFn=getMessaging;window._getTokenFn=getToken;window._onMessageFn=onMessage;
 const cfg = window.APP_CONFIG.firebase;
 try {
   const app = initializeApp(cfg);const auth=getAuth(app);signInAnonymously(auth).then(()=>{console.log('AUTH OK');window._authDone=true;window.dispatchEvent(new Event('authReady'));}).catch(e=>console.log('anon auth err',e));
@@ -139,12 +139,14 @@ body{
   cursor:pointer;
   -webkit-user-select:none;
   user-select:none;
-  touch-action:none;
+  touch-action:auto;
   position:relative;
   transform:translateZ(0);
   will-change:transform;
   transition:box-shadow .1s;
 }
+.drag-handle{touch-action:none;cursor:grab;color:var(--bo);font-size:14px;padding:2px 4px;line-height:1;flex-shrink:0;-webkit-user-select:none;user-select:none}
+.drag-handle:active{color:var(--tm)}
 .card.dg{opacity:.4;transform:scale(.97) rotate(1deg)}
 .card[data-p="Hitno"]{border-left-color:var(--red)}
 .card[data-p="Visoko"]{border-left-color:var(--ora)}
@@ -253,6 +255,7 @@ textarea.finp{resize:vertical;min-height:70px}
     </div>
     <div class="hdr-u">
       <div class="uav" id="uav">MP</div>
+      <button id="btnArchive" class="hadd" style="display:none;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2)" onclick="openArhiva()">📦 Arhiva</button>
       <button class="hadd" onclick="openModal()">＋ Zadatak</button>
     </div>
   </div>
@@ -370,6 +373,17 @@ textarea.finp{resize:vertical;min-height:70px}
   </div>
 </div>
 
+<!-- ARHIVA MODAL (admin only) -->
+<div class="ov" id="archOv" onclick="if(event.target===this)closeArchive()">
+  <div class="modal">
+    <div class="mhd">
+      <span class="mt">🗄️ Arhiva zadataka</span>
+      <button class="mc" onclick="closeArchive()">✕</button>
+    </div>
+    <div id="archBody" style="padding:12px;min-height:80px"></div>
+  </div>
+</div>
+
 <div class="toast" id="tst"></div>
 
 <script>
@@ -380,7 +394,7 @@ const CNAME={todo:'Za odraditi',wip:'U postupku',done:'Riješeno'};
 const CICON={todo:'📋',wip:'⚙️',done:'✅'};
 const CBID=['cb0','cb1','cb2'];
 
-let me='', tasks=[], eid=null, tmpF=[], dragId=null, cfnCb=null, lastSeen={};
+let me='', isAdmin=false, tasks=[], eid=null, tmpF=[], dragId=null, cfnCb=null, lastSeen={};
 let tId=null, tGhost=null, tSX=0, tSY=0, tLP=null, tActive=false;
 
 // FIREBASE
@@ -446,7 +460,9 @@ function doLogin(){
   if(!USERS[u]||p!==PWD){err.style.display='block';document.getElementById('lpw').value='';return;}
   err.style.display='none';
   me=USERS[u].name;
+  isAdmin=USERS[u].admin===true;
   document.getElementById('uav').textContent=USERS[u].av;
+  document.getElementById('btnArchive').style.display=isAdmin?'':'none';
   document.getElementById('LS').style.display='none';
   localStorage.setItem('sz_u',u);
   const loc=localStorage.getItem('sz_t');
@@ -474,10 +490,13 @@ function render(){
     document.getElementById('st'+i).textContent=total;
     body.innerHTML=list.length?list.map(card).join(''):'<div class="empty">Nema zadataka</div>';
     body.querySelectorAll('.card').forEach(el=>{
-      el.addEventListener('touchstart',e=>tStart(e,el.dataset.id),{passive:false});
-      el.addEventListener('touchmove',tMove,{passive:false});
-      el.addEventListener('touchend',tEnd,{passive:true});
-      el.addEventListener('touchcancel',tCancel,{passive:true});
+      const h=el.querySelector('.drag-handle');
+      if(h){
+        h.addEventListener('touchstart',e=>{e.stopPropagation();tStart(e,el.dataset.id);},{passive:false});
+        h.addEventListener('touchmove',tMove,{passive:false});
+        h.addEventListener('touchend',tEnd,{passive:true});
+        h.addEventListener('touchcancel',tCancel,{passive:true});
+      }
     });
   });
 }
@@ -512,6 +531,7 @@ function card(t){
   if(t.updated) hist+='<span style="color:var(--bo)">'+fd(t.updated)+'</span>';
   return '<div class="card" data-id="'+t.id+'" data-p="'+t.prioritet+'" draggable="true" onclick="openEdit(\''+t.id+'\')" ondragstart="ds(event,\''+t.id+'\')" ondragend="de(event)">'+
     '<div style="display:flex;align-items:flex-start;gap:5px">'+
+    '<span class="drag-handle" onclick="event.stopPropagation()" title="Povuci">⠿</span>'+
     '<div class="card-tit" style="flex:1">'+esc(t.naziv||'')+'</div>'+
     '<button class="card-fwd" onclick="event.stopPropagation();mvFwd(\''+t.id+'\')" title="Naprijed">→</button>'+
     '</div>'+
@@ -634,14 +654,39 @@ function doNotif(title,body){
   }
 }
 function openArhiva(){
-  if(!window._fbOK) return;
+  if(!window._fbOK||!isAdmin) return;
+  document.getElementById('archBody').innerHTML='<div style="text-align:center;padding:24px;color:var(--tm)">Učitavam...</div>';
+  document.getElementById('archOv').classList.add('open');
+  loadArchive();
+}
+
+function closeArchive(){document.getElementById('archOv').classList.remove('open');}
+
+function loadArchive(){
   window._onValue(window._ref(window._db,APP_CONFIG.dbPaths.archive),snap=>{
     const data=snap.val();
     const arhiva=data?Object.values(data).sort((a,b)=>(b.deletedAt||'')>(a.deletedAt||'')?1:-1):[];
-    const html=arhiva.length?arhiva.map(t=>'<div style="background:#f8f8f8;border-radius:8px;padding:10px 12px;margin-bottom:8px;border-left:3px solid var(--ts)"><div style="font-weight:600;font-size:13px">'+esc(t.naziv||'')+'</div>'+(t.opis?'<div style="font-size:11px;color:var(--ts);margin-top:2px">'+esc(t.opis)+'</div>':'')+'<div style="font-size:10px;color:var(--tm);margin-top:4px">'+(CNAME[t.status]||'')+' • Obrisao: '+(t.deletedBy||'')+' • '+(t.deletedAt?t.deletedAt.split("T")[0]:'')+'</div><div style="display:flex;gap:6px;margin-top:8px"><button onclick="vratiIzArhive(\''+t.id+'\')" style="padding:5px 10px;border-radius:6px;border:none;background:#2d6a2d;color:#fff;font-size:11px;font-weight:700;cursor:pointer">↩️ Vrati</button><button onclick="trajnoObrisi(\''+t.id+'\')" style="padding:5px 10px;border-radius:6px;border:none;background:#c0392b;color:#fff;font-size:11px;font-weight:700;cursor:pointer">🗑️ Trajno obriši</button></div></div>').join(''):'<div style="text-align:center;padding:20px;color:var(--tm)">Arhiva je prazna</div>';
-    document.getElementById('cmsg').innerHTML='<div style="text-align:left;max-height:60vh;overflow-y:auto">'+html+'</div>';
-    document.getElementById('cov').classList.add('open');
+    document.getElementById('archBody').innerHTML=arhiva.length
+      ?'<div style="display:flex;flex-direction:column;gap:8px">'+arhiva.map(archCard).join('')+'</div>'
+      :'<div style="text-align:center;padding:24px;color:var(--tm)">Arhiva je prazna</div>';
   },{onlyOnce:true});
+}
+
+function archCard(t){
+  return '<div style="background:var(--bg);border-radius:8px;padding:10px 12px;border-left:3px solid var(--ts)">'+
+    '<div style="font-weight:600;font-size:13px">'+esc(t.naziv||'')+'</div>'+
+    (t.opis?'<div style="font-size:11px;color:var(--ts);margin-top:2px">'+esc(t.opis)+'</div>':'')+
+    '<div style="font-size:10px;color:var(--tm);margin-top:4px">'+
+      (CNAME[t.status]||'')+
+      (t.kreirao?' • Kreirao: '+esc(t.kreirao):'')+
+      (t.deletedBy?' • Arhivirao: '+esc(t.deletedBy):'')+
+      (t.deletedAt?' • '+t.deletedAt.split('T')[0]:'')+
+    '</div>'+
+    '<div style="display:flex;gap:6px;margin-top:8px">'+
+      '<button onclick="vratiIzArhive(\''+t.id+'\')" style="padding:5px 10px;border-radius:6px;border:none;background:#2d6a2d;color:#fff;font-size:11px;font-weight:700;cursor:pointer">↩️ Vrati</button>'+
+      '<button onclick="trajnoObrisi(\''+t.id+'\')" style="padding:5px 10px;border-radius:6px;border:none;background:#c0392b;color:#fff;font-size:11px;font-weight:700;cursor:pointer">🗑️ Trajno obriši</button>'+
+    '</div>'+
+  '</div>';
 }
 
 function vratiIzArhive(id){
@@ -653,7 +698,7 @@ function vratiIzArhive(id){
     tasks.unshift(t);
     syncFb();
     window._set(window._ref(window._db,APP_CONFIG.dbPaths.archive+'/'+id),null);
-    document.getElementById('cov').classList.remove('open');
+    closeArchive();
     render();
     showToast('Nalog vraćen u Za odraditi ✅');
   },{onlyOnce:true});
@@ -662,8 +707,8 @@ function vratiIzArhive(id){
 function trajnoObrisi(id){
   showConfirm('Trajno obrisati ovaj nalog?',()=>{
     window._set(window._ref(window._db,APP_CONFIG.dbPaths.archive+'/'+id),null);
-    document.getElementById('cov').classList.remove('open');
     showToast('Trajno obrisano 🗑️');
+    loadArchive();
   });
 }
 
@@ -784,10 +829,10 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();docume
   document.querySelector('.lt').textContent=c.appName;
   document.querySelector('.ls').textContent=c.orgSubtitle;
   document.querySelector('.lf').textContent=c.footerText;
-  document.querySelector('.li').textContent=c.logoEmoji;
+  document.querySelector('.li').innerHTML='<img src="icon-192.png" style="width:56px;height:56px;border-radius:14px;object-fit:cover;" onerror="this.parentNode.textContent=\''+c.logoEmoji+'\'">';
   document.querySelector('.hdr-t').textContent=c.appName;
   document.querySelector('.hdr-s').textContent=c.orgName;
-  document.querySelector('.hdr-lg').textContent=c.logoEmoji;
+  document.querySelector('.hdr-lg').innerHTML='<img src="icon-192.png" style="width:28px;height:28px;border-radius:7px;object-fit:cover;" onerror="this.parentNode.textContent=\''+c.logoEmoji+'\'">';
   const u=localStorage.getItem('sz_u');
   if(u&&USERS[u]){document.getElementById('lun').value=u;document.getElementById('lpw').value=PWD;doLogin();}
   else document.getElementById('lun').focus();
