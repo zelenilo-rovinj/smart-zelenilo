@@ -12,19 +12,24 @@
 <link rel="icon" href="favicon.ico">
 <title>Smart Zelenilo</title>
 
+<script src="config.js"></script>
+<script>
+(function(){
+  var c=window.APP_CONFIG,co=c.colors,r=document.documentElement.style;
+  document.title=c.appName;
+  document.querySelector('meta[name="apple-mobile-web-app-title"]').content=c.appName;
+  document.querySelector('meta[name="theme-color"]').content=co.navy;
+  r.setProperty('--navy',co.navy);r.setProperty('--green',co.green);r.setProperty('--gl',co.gl);
+  r.setProperty('--gold',co.gold);r.setProperty('--goldL',co.goldL);r.setProperty('--bg',co.bg);
+  r.setProperty('--gw',co.gw);r.setProperty('--tx',co.tx);r.setProperty('--ts',co.ts);
+  r.setProperty('--tm',co.tm);r.setProperty('--bo',co.bo);
+})();
+</script>
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
 import { getDatabase, ref, set, onValue, push } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js';
 import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging.js';window._getMessagingFn=getMessaging;window._getTokenFn=getToken;window._onMessageFn=onMessage;
-const cfg = {
-  apiKey:"AIzaSyBSbUaG8Mz5bkZgl-KGaiQx3AtzvjCDPLE",
-  authDomain:"zelenilo-rovinj.firebaseapp.com",
-  databaseURL:"https://zelenilo-rovinj-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId:"zelenilo-rovinj",
-  storageBucket:"zelenilo-rovinj.firebasestorage.app",
-  messagingSenderId:"1050602141317",
-  appId:"1:1050602141317:web:ad083652b2254eedf89bec"
-};
+const cfg = window.APP_CONFIG.firebase;
 try {
   const app = initializeApp(cfg);const auth=getAuth(app);signInAnonymously(auth).then(()=>{console.log('AUTH OK');window._authDone=true;window.dispatchEvent(new Event('authReady'));}).catch(e=>console.log('anon auth err',e));
   const db = getDatabase(app);
@@ -368,9 +373,8 @@ textarea.finp{resize:vertical;min-height:70px}
 <div class="toast" id="tst"></div>
 
 <script>
-const USERS={morris:{name:'Morris Peruško',av:'MP'},dean:{name:'Dean Vaci',av:'DV'},ervino:{name:'Ervino Rudan',av:'ER'},kristijan:{name:'Kristijan Laginja',av:'KL'}};
-const PWD='ZELENILORV!';
-const VAPID='BMQpj8Kaj46hRN26R9Lc3ujFmvwfev1I2gdffPdZwefIgC8bpNKxsuT4jDvpSFuV0xQolVlHtNXleNdLXgbeMRU';
+const USERS=APP_CONFIG.users;
+const PWD=APP_CONFIG.password;
 const COLS=['todo','wip','done'];
 const CNAME={todo:'Za odraditi',wip:'U postupku',done:'Riješeno'};
 const CICON={todo:'📋',wip:'⚙️',done:'✅'};
@@ -384,7 +388,7 @@ window.addEventListener('fbOK',()=>{ if(me){initFb();window._authDone?initFCM():
 
 function initFb(){
   if(!window._fbOK) return;
-  window._onValue(window._ref(window._db,'zelenilo/kanban'),snap=>{
+  window._onValue(window._ref(window._db,APP_CONFIG.dbPaths.kanban),snap=>{
     const data=snap.val();
     const prev=tasks.map(t=>t.id);
     tasks=data?Object.values(data).sort((a,b)=>(b.ts||0)-(a.ts||0)):[];
@@ -407,14 +411,14 @@ function syncFb(){
   if(!window._fbOK){showToast('FB nije spojen!');return;}
   const obj={};
   tasks.forEach(t=>{obj[t.id]=t;});
-  window._set(window._ref(window._db,'zelenilo/kanban'),obj)
+  window._set(window._ref(window._db,APP_CONFIG.dbPaths.kanban),obj)
     .then(()=>showToast('Oblak OK!'))
     .catch(e=>showToast('Greska: '+e.code));
 }
 
 function triggerNotif(title,body){
   if(!window._fbOK) return;
-  window._set(window._ref(window._db,'zelenilo/notifications/n'+Date.now()),{title,body,from:me,ts:Date.now()});
+  window._set(window._ref(window._db,APP_CONFIG.dbPaths.notifications+'/n'+Date.now()),{title,body,from:me,ts:Date.now()});
 }
 
 async function initFCM(){
@@ -422,7 +426,7 @@ async function initFCM(){
   if(Notification.permission!=='granted') return;
   const { onChildAdded, ref } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js');
   const startTs = Date.now();
-  onChildAdded(ref(window._db,'zelenilo/notifications'), snap=>{
+  onChildAdded(ref(window._db,APP_CONFIG.dbPaths.notifications), snap=>{
     const d=snap.val();
     if(d&&d.from!==me&&d.ts&&d.ts>startTs){
       navigator.serviceWorker.ready.then(reg=>{
@@ -574,7 +578,17 @@ function saveTask(){
 
 function deleteTask(){
   if(!eid) return;
-  showConfirm('Obrisati ovaj zadatak?',()=>{tasks=tasks.filter(x=>x.id!==eid);syncFb();render();closeModal();showToast('Obrisano');});
+  showConfirm('Obrisati ovaj zadatak?',()=>{
+    const t=tasks.find(x=>x.id===eid);
+    if(t){
+      t.deletedAt=new Date().toISOString();
+      t.deletedBy=me;
+      window._set(window._ref(window._db,APP_CONFIG.dbPaths.archive+'/'+t.id),t);
+    }
+    tasks=tasks.filter(x=>x.id!==eid);
+    syncFb();render();closeModal();
+    showToast('Premješteno u arhivu');
+  });
 }
 
 // FILES - prihvaća sve tipove
@@ -616,6 +630,39 @@ function doNotif(title,body){
       new Notification(title,{body,icon:'icon-192.png',badge:'icon-192.png',vibrate:[300,100,300]});
     }
   }
+}
+function openArhiva(){
+  if(!window._fbOK) return;
+  window._onValue(window._ref(window._db,APP_CONFIG.dbPaths.archive),snap=>{
+    const data=snap.val();
+    const arhiva=data?Object.values(data).sort((a,b)=>(b.deletedAt||'')>(a.deletedAt||'')?1:-1):[];
+    const html=arhiva.length?arhiva.map(t=>'<div style="background:#f8f8f8;border-radius:8px;padding:10px 12px;margin-bottom:8px;border-left:3px solid var(--ts)"><div style="font-weight:600;font-size:13px">'+esc(t.naziv||'')+'</div>'+(t.opis?'<div style="font-size:11px;color:var(--ts);margin-top:2px">'+esc(t.opis)+'</div>':'')+'<div style="font-size:10px;color:var(--tm);margin-top:4px">'+(CNAME[t.status]||'')+' • Obrisao: '+(t.deletedBy||'')+' • '+(t.deletedAt?t.deletedAt.split("T")[0]:'')+'</div><div style="display:flex;gap:6px;margin-top:8px"><button onclick="vratiIzArhive(\''+t.id+'\')" style="padding:5px 10px;border-radius:6px;border:none;background:#2d6a2d;color:#fff;font-size:11px;font-weight:700;cursor:pointer">↩️ Vrati</button><button onclick="trajnoObrisi(\''+t.id+'\')" style="padding:5px 10px;border-radius:6px;border:none;background:#c0392b;color:#fff;font-size:11px;font-weight:700;cursor:pointer">🗑️ Trajno obriši</button></div></div>').join(''):'<div style="text-align:center;padding:20px;color:var(--tm)">Arhiva je prazna</div>';
+    document.getElementById('cmsg').innerHTML='<div style="text-align:left;max-height:60vh;overflow-y:auto">'+html+'</div>';
+    document.getElementById('cov').classList.add('open');
+  },{onlyOnce:true});
+}
+
+function vratiIzArhive(id){
+  window._onValue(window._ref(window._db,APP_CONFIG.dbPaths.archive+'/'+id),snap=>{
+    const t=snap.val();
+    if(!t) return;
+    delete t.deletedAt;delete t.deletedBy;
+    t.status='todo';
+    tasks.unshift(t);
+    syncFb();
+    window._set(window._ref(window._db,APP_CONFIG.dbPaths.archive+'/'+id),null);
+    document.getElementById('cov').classList.remove('open');
+    render();
+    showToast('Nalog vraćen u Za odraditi ✅');
+  },{onlyOnce:true});
+}
+
+function trajnoObrisi(id){
+  showConfirm('Trajno obrisati ovaj nalog?',()=>{
+    window._set(window._ref(window._db,APP_CONFIG.dbPaths.archive+'/'+id),null);
+    document.getElementById('cov').classList.remove('open');
+    showToast('Trajno obrisano 🗑️');
+  });
 }
 
 // DRAG & DROP desktop
@@ -731,6 +778,14 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();docume
 
 // INIT
 (function init(){
+  const c=APP_CONFIG;
+  document.querySelector('.lt').textContent=c.appName;
+  document.querySelector('.ls').textContent=c.orgSubtitle;
+  document.querySelector('.lf').textContent=c.footerText;
+  document.querySelector('.li').textContent=c.logoEmoji;
+  document.querySelector('.hdr-t').textContent=c.appName;
+  document.querySelector('.hdr-s').textContent=c.orgName;
+  document.querySelector('.hdr-lg').textContent=c.logoEmoji;
   const u=localStorage.getItem('sz_u');
   if(u&&USERS[u]){document.getElementById('lun').value=u;document.getElementById('lpw').value=PWD;doLogin();}
   else document.getElementById('lun').focus();

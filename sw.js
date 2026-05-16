@@ -1,24 +1,15 @@
+importScripts('./config.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js');
 
-// Firebase config u SW
-firebase.initializeApp({
-  apiKey: "AIzaSyBSbUaG8Mz5bkZgl-KGaiQx3AtzvjCDPLE",
-  authDomain: "zelenilo-rovinj.firebaseapp.com",
-  databaseURL: "https://zelenilo-rovinj-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "zelenilo-rovinj",
-  storageBucket: "zelenilo-rovinj.firebasestorage.app",
-  messagingSenderId: "1050602141317",
-  appId: "1:1050602141317:web:ad083652b2254eedf89bec"
-});
+firebase.initializeApp(APP_CONFIG.firebase);
 
 const messaging = firebase.messaging();
 
 // Background push - kad je app zatvorena ili minimizirana
 messaging.onBackgroundMessage((payload) => {
-  const title = payload.notification?.title || 'Smart Zelenilo';
+  const title = payload.notification?.title || APP_CONFIG.appName;
   const body = payload.notification?.body || 'Nova obavijest';
-  
   return self.registration.showNotification(title, {
     body: body,
     icon: './icon-192.png',
@@ -30,9 +21,22 @@ messaging.onBackgroundMessage((payload) => {
   });
 });
 
-// Cache
-const CACHE = 'smart-zelenilo-v1774884328991';
-const FILES = ['./index.html','./manifest.json','./icon-192.png','./icon-512.png'];
+self.addEventListener('push', e => {
+  const data = e.data ? e.data.json() : {};
+  e.waitUntil(
+    self.registration.showNotification(data.title || APP_CONFIG.appName, {
+      body: data.body || '',
+      icon: './icon-192.png',
+      badge: './icon-192.png',
+      tag: 'sz-push',
+      renotify: true,
+      vibrate: [300, 100, 300]
+    })
+  );
+});
+
+const CACHE = APP_CONFIG.cacheVersion;
+const FILES = ['./index.html','./config.js','./manifest.json','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
@@ -63,7 +67,7 @@ self.addEventListener('notificationclick', e => {
   e.waitUntil(
     clients.matchAll({type:'window',includeUncontrolled:true}).then(list => {
       for(const c of list){
-        if(c.url.includes('smart-zelenilo')||c.url.includes('index')) return c.focus();
+        if(c.url.includes(APP_CONFIG.appUrlPattern)) return c.focus();
       }
       return clients.openWindow('./index.html');
     })
