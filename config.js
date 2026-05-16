@@ -37,7 +37,7 @@ const APP_CONFIG = {
     appId:             '1:1050602141317:web:ad083652b2254eedf89bec',
   },
 
-  // VAPID public key (must match the private key in functions/index.js)
+  // Firebase Cloud Messaging VAPID key — from Firebase Console → Project Settings → Cloud Messaging → Web Push certificates
   vapidPublicKey: 'BOvQF3MNXQqEdWxqAZNCcR0mNlh2QgrGswgxcGfebztlWbwLlYGC6xsjqVb07YnFCEz9Fj2fy_TxOCDhgmPM2SU',
 
   // --- Realtime Database paths ---

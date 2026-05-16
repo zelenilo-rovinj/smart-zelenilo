@@ -35,7 +35,7 @@ try {
   const db = getDatabase(app);
   window._db=db; window._ref=ref; window._set=set; window._onValue=onValue; window._push=push;
   console.log('BEFORE MSG');try {
-    const msg = window._getMessagingFn(app);rker.ready;
+    const msg = window._getMessagingFn(app);
     window._msg=msg;window._getToken=getToken;window._onMsg=onMessage;console.log('MSG OK',msg);
     onMessage(msg, p => showToast((p.notification?.title||'')+(p.notification?.body?': '+p.notification.body:'')));
   } catch(e){console.log('MSG ERR:',e);}
@@ -422,18 +422,20 @@ function triggerNotif(title,body){
 }
 
 async function initFCM(){
-  if(!window._fbOK||!window._db) return;
+  if(!window._fbOK||!window._db||!window._msg) return;
   if(Notification.permission!=='granted') return;
-  const { onChildAdded, ref } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js');
-  const startTs = Date.now();
-  onChildAdded(ref(window._db,APP_CONFIG.dbPaths.notifications), snap=>{
-    const d=snap.val();
-    if(d&&d.from!==me&&d.ts&&d.ts>startTs){
-      navigator.serviceWorker.ready.then(reg=>{
-        if(reg.active) reg.active.postMessage({type:'SHOW_NOTIFICATION',title:d.title,body:d.body});
-      });
-    }
-  });
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const token = await window._getToken(window._msg,{
+      vapidKey:APP_CONFIG.vapidPublicKey,
+      serviceWorkerRegistration:reg
+    });
+    if(!token){console.log('FCM: no token');return;}
+    const deviceId=localStorage.getItem('dId')||(()=>{const id=Math.random().toString(36).slice(2);localStorage.setItem('dId',id);return id;})();
+    const k=me.replace(/[^a-zA-Z0-9]/g,'_')+'_'+deviceId;
+    window._set(window._ref(window._db,APP_CONFIG.dbPaths.pushSubs+'/'+k),{token,user:me,ts:Date.now()});
+    console.log('FCM token OK');
+  } catch(e){console.log('FCM ERR:',e);}
 }
 
 // LOGIN
