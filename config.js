@@ -58,7 +58,7 @@ const APP_CONFIG = {
   password: 'ZELENILORV!',
 
   // --- Service worker ---
-  cacheVersion:  'smart-zelenilo-v3',
+  cacheVersion:  'smart-zelenilo-v4',
   appUrlPattern: 'zelenilo-rovinj', // matched against window location in SW notificationclick
 };
 

@@ -469,10 +469,9 @@ function doLogin(){
   document.getElementById('btnArchive').style.display=isAdmin?'':'none';
   document.getElementById('LS').style.display='none';
   localStorage.setItem('sz_u',u);
-  const loc=localStorage.getItem('sz_t');
-  if(loc) tasks=JSON.parse(loc);
+  try{const loc=localStorage.getItem('sz_t');if(loc)tasks=JSON.parse(loc);}catch(e){console.warn('localStorage parse error, resetting tasks',e);localStorage.removeItem('sz_t');}
   render();
-  if(window._fbOK){initFb();setTimeout(()=>initFCM(),1000);}
+  if(window._fbOK){initFb();setTimeout(()=>initFCM(),1000);}else{setTimeout(()=>initFCM(),3000);}
   if('Notification'in window&&Notification.permission==='default'){
     if(isIOS()&&!isIOSPWA()){
       showToast('📱 Dodaj app na početni zaslon za obavijesti');
@@ -760,11 +759,14 @@ function tStart(e,id){
 
 function tMove(e){
   if(!tId)return;
-  e.preventDefault();
   const touch=e.touches[0];
   const dx=touch.clientX-tSX, dy=touch.clientY-tSY;
-  if(!tActive&&(Math.abs(dx)>10||Math.abs(dy)>10)){clearTimeout(tLP);tId=null;return;}
-  if(tActive&&tGhost){
+  if(!tActive){
+    if(Math.abs(dx)>10||Math.abs(dy)>10){clearTimeout(tLP);tId=null;}
+    return;
+  }
+  e.preventDefault();
+  if(tGhost){
     tGhost.style.left=(touch.clientX-120)+'px';
     tGhost.style.top=(touch.clientY-30)+'px';
     document.querySelectorAll('.col-body').forEach(el=>el.classList.remove('dov'));
@@ -832,7 +834,7 @@ function fd(d){if(!d)return '';const p=d.split('-');return p[2]+'.'+p[1]+'.';}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();document.getElementById('lb3').classList.remove('open');}});
 
 // INIT
-(function init(){
+try{(function init(){
   const c=APP_CONFIG;
   document.querySelector('.lt').textContent=c.appName;
   document.querySelector('.ls').textContent=c.orgSubtitle;
@@ -844,7 +846,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();docume
   const u=localStorage.getItem('sz_u');
   if(u&&USERS[u]){document.getElementById('lun').value=u;document.getElementById('lpw').value=PWD;doLogin();}
   else document.getElementById('lun').focus();
-})();
+})();}catch(e){console.error('Init error:',e);document.getElementById('lun').focus();}
 </script>
 
 <script>
