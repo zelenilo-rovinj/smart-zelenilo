@@ -18,7 +18,10 @@ exports.sendPushOnNotification = onValueCreated(
 
     // Dohvati sve FCM tokene
     const subsSnap = await db.ref("zelenilo/push_subs").get();
-    if (!subsSnap.exists()) return;
+    if (!subsSnap.exists()) {
+      await event.data.ref.remove();
+      return;
+    }
 
     const tokens = [];
     subsSnap.forEach((child) => {
@@ -28,7 +31,10 @@ exports.sendPushOnNotification = onValueCreated(
       }
     });
 
-    if (tokens.length === 0) return;
+    if (tokens.length === 0) {
+      await event.data.ref.remove();
+      return;
+    }
 
     // Šalji push svima osim pošiljatelju
     const messaging = getMessaging();
