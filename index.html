@@ -673,18 +673,19 @@ function loadArchive(){
 }
 
 function archCard(t){
-  return '<div style="background:var(--bg);border-radius:8px;padding:10px 12px;border-left:3px solid var(--ts)">'+
-    '<div style="font-weight:600;font-size:13px">'+esc(t.naziv||'')+'</div>'+
-    (t.opis?'<div style="font-size:11px;color:var(--ts);margin-top:2px">'+esc(t.opis)+'</div>':'')+
-    '<div style="font-size:10px;color:var(--tm);margin-top:4px">'+
+  const btnBase='flex:1;padding:10px 8px;border-radius:8px;border:none;font-size:12px;font-weight:700;font-family:\'DM Sans\',sans-serif;cursor:pointer;-webkit-appearance:none;-webkit-tap-highlight-color:transparent';
+  return '<div style="background:var(--bg);border-radius:8px;padding:12px;border-left:3px solid var(--ts)">'+
+    '<div style="font-weight:600;font-size:13px;line-height:1.3">'+esc(t.naziv||'')+'</div>'+
+    (t.opis?'<div style="font-size:11px;color:var(--ts);margin-top:3px;line-height:1.4">'+esc(t.opis)+'</div>':'')+
+    '<div style="font-size:10px;color:var(--tm);margin-top:5px">'+
       (CNAME[t.status]||'')+
       (t.kreirao?' • Kreirao: '+esc(t.kreirao):'')+
       (t.deletedBy?' • Arhivirao: '+esc(t.deletedBy):'')+
       (t.deletedAt?' • '+t.deletedAt.split('T')[0]:'')+
     '</div>'+
-    '<div style="display:flex;gap:6px;margin-top:8px">'+
-      '<button onclick="vratiIzArhive(\''+t.id+'\')" style="padding:5px 10px;border-radius:6px;border:none;background:#2d6a2d;color:#fff;font-size:11px;font-weight:700;cursor:pointer">↩️ Vrati</button>'+
-      '<button onclick="trajnoObrisi(\''+t.id+'\')" style="padding:5px 10px;border-radius:6px;border:none;background:#c0392b;color:#fff;font-size:11px;font-weight:700;cursor:pointer">🗑️ Trajno obriši</button>'+
+    '<div style="display:flex;gap:8px;margin-top:10px">'+
+      '<button onclick="vratiIzArhive(\''+t.id+'\')" style="'+btnBase+';background:#2d6a2d;color:#fff">↩️ Vrati</button>'+
+      '<button onclick="trajnoObrisi(\''+t.id+'\')" style="'+btnBase+';background:#ffebee;color:#c0392b">🗑️ Obriši</button>'+
     '</div>'+
   '</div>';
 }
